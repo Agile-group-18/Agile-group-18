@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -39,27 +40,23 @@ class MainActivity : ComponentActivity() {
 fun SortSmartApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            AppDestinations.entries.forEach {
-                item(
-                    icon = {
-                        Icon(
-                            painterResource(it.icon),
-                            contentDescription = it.label
-                        )
-                    },
-                    label = { Text(it.label) },
-                    selected = it == currentDestination,
-                    onClick = { currentDestination = it }
-                )
-            }
+    // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            Header() // The custom header you added earlier
+        },
+        bottomBar = {
+            CustomBottomBar() // Your new custom bottom navigation!
         }
-    ) {
-        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    ) { innerPadding ->
+
+        // Switch the screen based on the currently selected destination
+        // (You will need to hook up the clicks in CustomBottomBar to change currentDestination later)
+        Box(modifier = Modifier.padding(innerPadding)) {
             Greeting(
                 name = "Android",
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
