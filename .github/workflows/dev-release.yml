@@ -1,5 +1,7 @@
 name: Upload pre-release binary
 
+permissions:
+  contents: write  
 on:
   push:
     branches: [ "dev" ]
