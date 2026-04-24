@@ -18,86 +18,130 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// --- Theming & Colors ---
+// Extracted colors for consistency and easier updates
+private val TitleTextColor = Color(0xFF1A1C17)
+private val NotificationBadgeColor = Color(0xFFFA2B35)
+private val PlaceholderColor = Color.LightGray
+private val AvatarPlaceholderColor = Color.Gray
+
 @Preview(showBackground = true)
 @Composable
 fun HeaderPreview() {
     Header()
 }
 
+/**
+ * The main top app bar (Header) for the application.
+ * Contains the branding on the left and user actions on the right.
+ *
+ * @param modifier Optional modifier for adjusting the layout from the parent.
+ */
 @Composable
 fun Header(modifier: Modifier = Modifier) {
-    // The main container for the header
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(96.dp)
-            .padding(horizontal = 24.dp), // Natural padding on the left and right
-        horizontalArrangement = Arrangement.SpaceBetween, // Pushes left and right sides apart
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween, // Pushes left and right content to the edges
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // --- Left Side ---
+        HeaderLogoAndTitle()
 
-        // ---------------- LEFT SIDE (Logo & Title) ----------------
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Placeholder Logo (Replace with your actual logo later)
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(Color.LightGray),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Logo",
-                    tint = Color.DarkGray
-                )
-            }
+        // --- Right Side ---
+        HeaderActions()
+    }
+}
 
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = "Sort Smart",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1A1C17) // Hex color from your design
+/**
+ * Composable for the left side of the header containing the logo and app name.
+ */
+@Composable
+private fun HeaderLogoAndTitle() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // Placeholder Logo
+        // TODO: Replace with an actual Image composable when the logo is ready
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(PlaceholderColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Star,
+                contentDescription = "App Logo Placeholder",
+                tint = Color.DarkGray
             )
         }
 
-        // ---------------- RIGHT SIDE (Bell & Profile) ----------------
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(modifier = Modifier.width(8.dp))
 
-            // Notification Bell with Red Dot
-            Box(
-                modifier = Modifier.size(40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // The Bell Icon
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    modifier = Modifier.size(24.dp)
-                )
+        Text(
+            text = "Sort Smart",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = TitleTextColor
+        )
+    }
+}
 
-                // The Red Dot
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .align(Alignment.TopEnd) // Sticks it to the top right
-                        .offset(x = (-4).dp, y = 4.dp) // Tweaks the exact position
-                        .clip(CircleShape)
-                        .background(Color(0xFFFA2B35)) // Red color from your design
-                )
-            }
+/**
+ * Composable for the right side of the header containing user-specific actions.
+ */
+@Composable
+private fun HeaderActions() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        NotificationBell(hasUnread = true)
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-            // Profile Picture Placeholder
+        ProfileAvatar()
+    }
+}
+
+/**
+ * A notification icon that conditionally displays a red unread badge.
+ * * @param hasUnread Boolean dictating whether the red dot should be visible.
+ */
+@Composable
+private fun NotificationBell(hasUnread: Boolean) {
+    Box(
+        modifier = Modifier.size(40.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Notifications,
+            contentDescription = "Notifications",
+            modifier = Modifier.size(24.dp)
+        )
+
+        // The Red Unread Dot
+        if (hasUnread) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(8.dp)
+                    .align(Alignment.TopEnd) // Anchors to the top-right of the parent Box
+                    .offset(x = (-4).dp, y = 4.dp) // Fine-tunes the exact position to sit on the bell
                     .clip(CircleShape)
-                    .background(Color.Gray) // Replace this Box with an Image later
+                    .background(NotificationBadgeColor)
             )
         }
     }
+}
+
+/**
+ * A placeholder for the user's profile picture.
+ */
+@Composable
+private fun ProfileAvatar() {
+    // TODO: Replace this Box with an AsyncImage (like Coil) or Image composable later
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .background(AvatarPlaceholderColor)
+    )
 }
