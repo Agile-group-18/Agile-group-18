@@ -47,6 +47,7 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import org.jsoup.Jsoup
 
+
 // --- THEME & CONSTANTS ---
 private val PrimaryGreen = Color(0xFF386B21)
 private val DarkText = Color(0xFF1A1C17)
@@ -64,7 +65,7 @@ data class RecyclingStation(
     val location: LatLng,
     val externalId: String,
     val municipalityCode: String,
-    val acceptedCategories: List<String>
+    val acceptedCategories: List<String> = emptyList()
 )
 
 /**
@@ -84,22 +85,27 @@ data class FractionItem(
 @Composable
 fun MapScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val categories = listOf("All", "Plastic", "Paper", "Glass", "Metal", "Hazardous")
-    var selectedCategory by remember { mutableStateOf("All") }
+    var selectedCategory by remember { mutableStateOf<String>("All") }
 
     // UI States
     var selectedStation by remember { mutableStateOf<RecyclingStation?>(null) }
-    var allStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
+    val allStations = remember { mutableStateListOf<RecyclingStation>() }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val categories: List<String> by remember(allStations) {
+        derivedStateOf {val allFoundCategories = allStations.flatMap {it.acceptedCategories}.distinct().sorted()
+            listOf("All")+allFoundCategories}
+    }
     // 1. Fetch all stations from the Avfall Sverige API
     LaunchedEffect(Unit) {
         try {
             val response = RetrofitClient.apiService.getAllStations()
-            allStations = response.avsList.mapNotNull { apiStation ->
+            val mapedStations = response.avsList.mapNotNull { apiStation ->
                 val latDouble = apiStation.lat?.toDoubleOrNull()
                 val lngDouble = apiStation.longitude?.toDoubleOrNull()
+                val actualCategories = apiStation.services?.map {it.toString().trim()} ?:emptyList()
+
 
                 if (latDouble != null && lngDouble != null) {
                     RecyclingStation(
@@ -107,10 +113,12 @@ fun MapScreen(modifier: Modifier = Modifier) {
                         location = LatLng(latDouble, lngDouble),
                         externalId = apiStation.externalAvsId ?: "",
                         municipalityCode = apiStation.municipalityCode ?: "",
-                        acceptedCategories = listOf("Plastic", "Paper", "Glass", "Metal", "Hazardous") // Mocked for now
+                        acceptedCategories = actualCategories // Mocked for now
                     )
                 } else null
             }
+            allStations.clear()
+            allStations.addAll(mapedStations)
             isLoading = false
         } catch (e: Exception) {
             errorMessage = "Network error: ${e.localizedMessage}"
@@ -160,20 +168,35 @@ fun MapScreen(modifier: Modifier = Modifier) {
     // 4. Lazy Loading (Only render markers visible on the screen for performance)
     var visibleStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
 
-    LaunchedEffect(cameraPositionState.isMoving, filteredStations) {
+    // 4. Uppdaterad för att skrapa synliga stationer live
+    LaunchedEffect(cameraPositionState.isMoving, selectedCategory) {
         if (!cameraPositionState.isMoving) {
             val bounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
             if (bounds != null) {
-                visibleStations = filteredStations.filter { bounds.contains(it.location) }
-            } else {
-                // Fallback: render up to 100 stations if bounds are unavailable
-                visibleStations = filteredStations.take(100)
+                // Hitta stationer inom vyn
+                val onScreen = filteredStations.filter { bounds.contains(it.location) }
+                visibleStations = onScreen
+
+                // Skrapa de 5 första stationerna i vyn som saknar kategorier
+                onScreen.filter { it.acceptedCategories.isEmpty() }.take(5).forEach { station ->
+                    val foundCategories = fetchCategoriesForStation(station)
+
+                    // Uppdatera stationen i den stora listan
+                     val index = allStations.indexOfFirst {it.externalId == station.externalId}
+                        if (index != -1 && foundCategories.isNotEmpty()){
+                            allStations[index] = allStations[index].copy(acceptedCategories = foundCategories)
+
+
+
+                    }
+                }
             }
         }
     }
 
     // 5. Build the Map and UI Overlay
     Box(modifier = modifier.fillMaxSize()) {
+
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
@@ -260,6 +283,19 @@ fun MapScreen(modifier: Modifier = Modifier) {
                     .clip(CircleShape)
                     .background(BadgeRed)
             )
+        }
+        // Inuti Box längst upp
+        Column(modifier = Modifier.padding(top = 80.dp, start = 16.dp)) {
+            androidx.compose.material3.Button(onClick = {
+                selectedStation = allStations.firstOrNull() ?: RecyclingStation(
+                    name = "Teststation Göteborg",
+                    location = LatLng(57.7, 11.9),
+                    externalId = "avs_1001",
+                    municipalityCode = "1480",
+
+                    )
+            }) {
+            }
         }
     }
 
@@ -425,4 +461,33 @@ fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescri
     val canvas = Canvas(bitmap)
     vectorDrawable.draw(canvas)
     return BitmapDescriptorFactory.fromBitmap(bitmap)
+}
+
+
+suspend fun fetchCategoriesForStation(station: RecyclingStation): List<String> {
+    return try {
+        val response = SoporRetrofitClient.apiService.getStationDetails(
+            externalId = station.externalId,
+            municipalityCode = station.municipalityCode
+        )
+        val document = Jsoup.parse(response.string())
+        val names = mutableListOf<String>()
+
+
+        val liElements = document.select("li")
+        for (li in liElements) {
+            val images = li.select("img")
+            if (images.isNotEmpty()) {
+                val text = li.text()
+                    .replace("Felanmäl", "")
+                    .trim()
+                if (text.isNotEmpty() && text.length < 40) {
+                    names.add(text)
+                }
+            }
+        }
+        names.distinct()
+    } catch (e: Exception) {
+        emptyList()
+    }
 }
