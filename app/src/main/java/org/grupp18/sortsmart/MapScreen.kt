@@ -363,6 +363,7 @@ fun StationDetailView(station: RecyclingStation) {
         } catch (e: Exception) {
             fractions = listOf(FractionItem("Could not load data", ""))
         }
+
         isLoading = false
     }
 
