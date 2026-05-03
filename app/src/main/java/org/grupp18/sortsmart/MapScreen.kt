@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -86,7 +87,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
     var selectedCategory by remember { mutableStateOf("All") }
 
     // UI States
-    var selectedStation by remember { mutableStateOf<RecyclingStation?>(null) }
+    var selectedStationId by remember { mutableStateOf<String?>(null) }
     var allStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -131,7 +132,6 @@ fun MapScreen(modifier: Modifier = Modifier) {
 
     val mapProperties = MapProperties(isMyLocationEnabled = hasLocationPermission)
     val gothenburg = LatLng(57.708870, 11.974560)
-
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(gothenburg, 12f)
     }
@@ -156,50 +156,41 @@ fun MapScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    // 4. Lazy Loading (Only render markers visible on the screen for performance)
-    var visibleStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
-
-    LaunchedEffect(cameraPositionState.isMoving, filteredStations) {
-        if (!cameraPositionState.isMoving) {
-            val bounds = cameraPositionState.projection?.visibleRegion?.latLngBounds
-            if (bounds != null) {
-                visibleStations = filteredStations.filter { bounds.contains(it.location) }
-            } else {
-                // Fallback: render up to 100 stations if bounds are unavailable
-                visibleStations = filteredStations.take(100)
-            }
+    // 4. Local Data Update Function
+    // This allows the UI to react immediately when a report is submitted
+    val handleReportSubmission: (String, List<String>) -> Unit = { id, reportedBins ->
+        allStations = allStations.map {
+            if (it.externalId == id) it.copy(fullBins = reportedBins) else it
         }
     }
 
-    // 5. Build the Map and UI Overlay
     Box(modifier = modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
             cameraPositionState = cameraPositionState,
             properties = mapProperties
         ) {
-            visibleStations.forEach { station ->
+            filteredStations.forEach { station ->
+                // Pin color changes based on fullBins content
                 val iconResId = if (station.fullBins.isNotEmpty()) {
                     R.drawable.ic_station_full
                 } else {
                     R.drawable.ic_station_functional
                 }
 
-                val customIcon = bitmapDescriptorFromVector(context, iconResId)
-
                 Marker(
                     state = MarkerState(position = station.location),
                     title = station.name,
-                    icon = customIcon,
+                    icon = bitmapDescriptorFromVector(context, iconResId),
                     onClick = {
-                        selectedStation = station
-                        true // Consume the click so the default info window doesn't pop up
+                        selectedStationId = station.externalId
+                        true
                     }
                 )
             }
         }
 
-        // Top Category Filter Menu
+        // Top Category Filter
         LazyRow(
             modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -216,17 +207,12 @@ fun MapScreen(modifier: Modifier = Modifier) {
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = category,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = if (isSelected) Color.White else DarkText
-                    )
+                    Text(category, color = if (isSelected) Color.White else DarkText, fontSize = 13.sp)
                 }
             }
         }
 
-        // Map Legend (Collapsible)
+        // Collapsible Map Legend (Aligned above zoom buttons)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -257,18 +243,24 @@ fun MapScreen(modifier: Modifier = Modifier) {
 
         if (isLoading) {
             Box(Modifier.align(Alignment.Center).background(Color.White, CircleShape).padding(16.dp)) {
-                Text("Loading stations from Avfall Sverige...")
+                Text("Loading stations...")
             }
         }
     }
 
-    // 6. Bottom Sheet Menu
-    if (selectedStation != null) {
+    // 5. Bottom Sheet for Details & Reporting
+    val activeStation = allStations.find { it.externalId == selectedStationId }
+    if (activeStation != null) {
         ModalBottomSheet(
-            onDismissRequest = { selectedStation = null },
+            onDismissRequest = { selectedStationId = null },
             containerColor = Color.White
         ) {
-            StationDetailView(station = selectedStation!!)
+            StationDetailView(
+                station = activeStation,
+                onReportSent = { reportedBins ->
+                    handleReportSubmission(activeStation.externalId, reportedBins)
+                }
+            )
         }
     }
 }
@@ -279,12 +271,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
 @Composable
 fun LegendRow(iconId: Int, label: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            painter = painterResource(id = iconId),
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = Color.Unspecified
-        )
+        Icon(painter = painterResource(id = iconId), contentDescription = null, modifier = Modifier.size(24.dp), tint = Color.Unspecified)
         Spacer(modifier = Modifier.width(8.dp))
         Text(label, fontSize = 12.sp, color = DarkText)
     }
@@ -293,12 +280,21 @@ fun LegendRow(iconId: Int, label: String) {
 // --- SCRAPING & DETAIL VIEW (SOPOR.NU) ---
 
 /**
- * Bottom sheet content that scrapes and displays exact waste fractions from sopor.nu.
+ * Displays details and the reporting form.
  */
 @Composable
-fun StationDetailView(station: RecyclingStation) {
+fun StationDetailView(
+    station: RecyclingStation,
+    onReportSent: (List<String>) -> Unit
+) {
     var isLoading by remember { mutableStateOf(true) }
     var fractions by remember { mutableStateOf<List<FractionItem>>(emptyList()) }
+
+    // Reporting States
+    var isReporting by remember { mutableStateOf(false) }
+    var selectedFullBins by remember { mutableStateOf(setOf<String>()) }
+    var showSuccessMessage by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
     val svgImageLoader = remember {
         ImageLoader.Builder(context).components { add(SvgDecoder.Factory()) }.build()
@@ -310,28 +306,21 @@ fun StationDetailView(station: RecyclingStation) {
             val response = SoporRetrofitClient.apiService.getStationDetails(station.externalId, station.municipalityCode)
             val document = Jsoup.parse(response.string())
             val parsedFractions = mutableListOf<FractionItem>()
-
             document.select("li").forEach { li ->
                 val img = li.select("img").firstOrNull() ?: return@forEach
-                val fractionText = li.text()
-                    .replace("Felanmäl", "")
-                    .replace("Återvinningsstation", "")
-                    .trim()
+                val fractionText = li.text().replace("Felanmäl", "").replace("Återvinningsstation", "").trim()
 
+                // Fix for duplicates and clean data
                 if (fractionText.isNotEmpty() && fractionText.length < 60 && !fractionText.contains("Id:")) {
                     var url = img.attr("src")
                     if (url.startsWith("/")) url = "https://www.sopor.nu$url"
-
                     if (parsedFractions.none { it.name == fractionText }) {
                         parsedFractions.add(FractionItem(fractionText, url))
                     }
                 }
             }
             fractions = parsedFractions
-        } catch (e: Exception) {
-            fractions = listOf(FractionItem("Could not load data", ""))
-        }
-
+        } catch (e: Exception) { /* Handle error */ }
         isLoading = false
     }
 
@@ -339,30 +328,55 @@ fun StationDetailView(station: RecyclingStation) {
         Text(station.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DarkText)
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (station.fullBins.isNotEmpty()) {
-            Text("Reported Full:", color = BadgeRed, fontWeight = FontWeight.Bold)
-            station.fullBins.forEach { Text("• $it", color = BadgeRed, modifier = Modifier.padding(start = 8.dp)) }
+        if (showSuccessMessage) {
+            Box(Modifier.fillMaxWidth().background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp)).padding(16.dp)) {
+                Text("Report submitted!", color = PrimaryGreen, fontWeight = FontWeight.Bold)
+            }
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        Text("Accepts the following waste:", fontWeight = FontWeight.SemiBold, color = LightText)
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (isLoading) {
-            CircularProgressIndicator(color = PrimaryGreen)
+        if (isReporting) {
+            Text("Which bins are full?", fontWeight = FontWeight.SemiBold, color = DarkText)
+            fractions.forEach { fraction ->
+                Row(
+                    Modifier.fillMaxWidth().clickable {
+                        selectedFullBins = if (selectedFullBins.contains(fraction.name)) selectedFullBins - fraction.name else selectedFullBins + fraction.name
+                    }.padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = selectedFullBins.contains(fraction.name), onCheckedChange = null)
+                    Text(fraction.name, modifier = Modifier.padding(start = 8.dp))
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = { isReporting = false }) { Text("Cancel") }
+                Button(
+                    onClick = {
+                        onReportSent(selectedFullBins.toList())
+                        isReporting = false
+                        showSuccessMessage = true
+                        selectedFullBins = emptySet()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                ) { Text("Submit Report") }
+            }
         } else {
+            if (station.fullBins.isNotEmpty()) {
+                Text("⚠️ Reported Full:", color = BadgeRed, fontWeight = FontWeight.Bold)
+                station.fullBins.forEach { Text("• $it", color = BadgeRed, modifier = Modifier.padding(start = 8.dp)) }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Text("Accepts waste:", fontWeight = FontWeight.SemiBold, color = LightText)
             fractions.forEach { fraction ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
-                    SubcomposeAsyncImage(
-                        model = fraction.iconUrl,
-                        imageLoader = svgImageLoader,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        error = { Icon(Icons.Default.CheckCircle, null, tint = PrimaryGreen) }
-                    )
+                    SubcomposeAsyncImage(model = fraction.iconUrl, imageLoader = svgImageLoader, contentDescription = null, modifier = Modifier.size(28.dp), error = { Icon(Icons.Default.CheckCircle, null, tint = PrimaryGreen) })
                     Spacer(Modifier.width(12.dp))
                     Text(fraction.name, fontSize = 15.sp, color = DarkText)
                 }
+            }
+            Button(onClick = { isReporting = true; showSuccessMessage = false }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp), colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)) {
+                Text("Report Status")
             }
         }
         Spacer(Modifier.height(48.dp))
@@ -372,7 +386,7 @@ fun StationDetailView(station: RecyclingStation) {
 // --- UTILITIES ---
 
 /**
- * Converts a vector drawable resource into a Google Maps BitmapDescriptor.
+ * Converts vector to BitmapDescriptor.
  */
 fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescriptor? {
     val vectorDrawable = ContextCompat.getDrawable(context, vectorResId) ?: return null
