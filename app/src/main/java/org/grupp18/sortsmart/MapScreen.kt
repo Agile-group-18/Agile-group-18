@@ -11,14 +11,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,7 +50,6 @@ private val PrimaryGreen = Color(0xFF386B21)
 private val DarkText = Color(0xFF1A1C17)
 private val LightText = Color(0xFF42473D)
 private val BadgeRed = Color(0xFFFA2B35)
-private val FloatingMenuBackground = Color(0xFFFFDBB6)
 
 // --- DATA MODELS ---
 
@@ -64,7 +61,8 @@ data class RecyclingStation(
     val location: LatLng,
     val externalId: String,
     val municipalityCode: String,
-    val acceptedCategories: List<String>
+    val acceptedCategories: List<String>,
+    val fullBins: List<String> = emptyList()
 )
 
 /**
@@ -92,6 +90,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
     var allStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLegendExpanded by remember { mutableStateOf(false) }
 
     // 1. Fetch all stations from the Avfall Sverige API
     LaunchedEffect(Unit) {
@@ -107,7 +106,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
                         location = LatLng(latDouble, lngDouble),
                         externalId = apiStation.externalAvsId ?: "",
                         municipalityCode = apiStation.municipalityCode ?: "",
-                        acceptedCategories = listOf("Plastic", "Paper", "Glass", "Metal", "Hazardous") // Mocked for now
+                        acceptedCategories = listOf("Plastic", "Paper", "Glass", "Metal", "Hazardous")
                     )
                 } else null
             }
@@ -179,11 +178,15 @@ fun MapScreen(modifier: Modifier = Modifier) {
             cameraPositionState = cameraPositionState,
             properties = mapProperties
         ) {
-            val customIcon = remember(context) {
-                bitmapDescriptorFromVector(context, R.drawable.ic_recycle_bin)
-            }
-
             visibleStations.forEach { station ->
+                val iconResId = if (station.fullBins.isNotEmpty()) {
+                    R.drawable.ic_station_full
+                } else {
+                    R.drawable.ic_station_functional
+                }
+
+                val customIcon = bitmapDescriptorFromVector(context, iconResId)
+
                 Marker(
                     state = MarkerState(position = station.location),
                     title = station.name,
@@ -198,9 +201,7 @@ fun MapScreen(modifier: Modifier = Modifier) {
 
         // Top Category Filter Menu
         LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -225,45 +226,43 @@ fun MapScreen(modifier: Modifier = Modifier) {
             }
         }
 
-        // Loading and Error States
+        // Map Legend (Collapsible)
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 14.dp, bottom = 130.dp),
+            horizontalAlignment = Alignment.End
+        ) {
+            if (isLegendExpanded) {
+                Column(
+                    modifier = Modifier
+                        .shadow(4.dp, RoundedCornerShape(8.dp))
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Map Legend", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = DarkText)
+                    LegendRow(R.drawable.ic_station_functional, "Functional")
+                    LegendRow(R.drawable.ic_station_full, "Needs Attention")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = "Toggle Legend",
+                tint = DarkText,
+                modifier = Modifier.size(36.dp).clickable { isLegendExpanded = !isLegendExpanded }
+            )
+        }
+
         if (isLoading) {
             Box(Modifier.align(Alignment.Center).background(Color.White, CircleShape).padding(16.dp)) {
                 Text("Loading stations from Avfall Sverige...")
             }
         }
-        if (errorMessage != null) {
-            Box(Modifier.align(Alignment.Center).background(Color.White, CircleShape).padding(16.dp)) {
-                Text(errorMessage!!, color = Color.Red)
-            }
-        }
-
-        // Floating Action Button (Map Layers)
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp)
-                .size(48.dp)
-                .shadow(6.dp, CircleShape)
-                .clip(CircleShape)
-                .background(FloatingMenuBackground)
-                .clickable { /* TODO: Implement Layer selection */ },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Layers, "Map Layers", tint = Color.Black, modifier = Modifier.size(24.dp))
-
-            // Notification Badge
-            Box(
-                Modifier
-                    .size(10.dp)
-                    .align(Alignment.TopEnd)
-                    .offset((-4).dp, 4.dp)
-                    .clip(CircleShape)
-                    .background(BadgeRed)
-            )
-        }
     }
 
-    // 6. Bottom Sheet Menu (Displays details for the selected station)
+    // 6. Bottom Sheet Menu
     if (selectedStation != null) {
         ModalBottomSheet(
             onDismissRequest = { selectedStation = null },
@@ -271,6 +270,23 @@ fun MapScreen(modifier: Modifier = Modifier) {
         ) {
             StationDetailView(station = selectedStation!!)
         }
+    }
+}
+
+/**
+ * Helper row for the map legend.
+ */
+@Composable
+fun LegendRow(iconId: Int, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            painter = painterResource(id = iconId),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = Color.Unspecified
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label, fontSize = 12.sp, color = DarkText)
     }
 }
 
@@ -283,83 +299,35 @@ fun MapScreen(modifier: Modifier = Modifier) {
 fun StationDetailView(station: RecyclingStation) {
     var isLoading by remember { mutableStateOf(true) }
     var fractions by remember { mutableStateOf<List<FractionItem>>(emptyList()) }
-
-    // A smart image loader configured to decode SVG files
     val context = LocalContext.current
     val svgImageLoader = remember {
-        ImageLoader.Builder(context)
-            .components { add(SvgDecoder.Factory()) }
-            .build()
+        ImageLoader.Builder(context).components { add(SvgDecoder.Factory()) }.build()
     }
 
     LaunchedEffect(station) {
         isLoading = true
         try {
-            // Guard clause if essential IDs are missing
-            if (station.externalId.isEmpty() || station.municipalityCode.isEmpty()) {
-                fractions = listOf(FractionItem("Information missing", ""))
-                isLoading = false
-                return@LaunchedEffect
-            }
-
-            val response = SoporRetrofitClient.apiService.getStationDetails(
-                externalId = station.externalId,
-                municipalityCode = station.municipalityCode
-            )
-
-            val rawHtml = response.string()
-            val document = Jsoup.parse(rawHtml)
+            val response = SoporRetrofitClient.apiService.getStationDetails(station.externalId, station.municipalityCode)
+            val document = Jsoup.parse(response.string())
             val parsedFractions = mutableListOf<FractionItem>()
 
-            val liElements = document.select("li")
-            for (li in liElements) {
-                val images = li.select("img")
-                if (images.isEmpty()) continue
+            document.select("li").forEach { li ->
+                val img = li.select("img").firstOrNull() ?: return@forEach
+                val fractionText = li.text()
+                    .replace("Felanmäl", "")
+                    .replace("Återvinningsstation", "")
+                    .trim()
 
-                // Inject split markers directly into the HTML to map images to text
-                for ((i, img) in images.withIndex()) {
-                    img.after(" _SPLIT_${i}_ ")
-                }
+                if (fractionText.isNotEmpty() && fractionText.length < 60 && !fractionText.contains("Id:")) {
+                    var url = img.attr("src")
+                    if (url.startsWith("/")) url = "https://www.sopor.nu$url"
 
-                val fullText = li.text()
-
-                // Extract the specific text for each waste fraction
-                for ((i, img) in images.withIndex()) {
-                    val marker = "_SPLIT_${i}_"
-                    val nextMarker = "_SPLIT_${i + 1}_"
-
-                    val startIndex = fullText.indexOf(marker)
-                    if (startIndex != -1) {
-                        val start = startIndex + marker.length
-                        var end = fullText.indexOf(nextMarker)
-                        if (end == -1) end = fullText.length
-
-                        // Clean up the extracted text block
-                        // Note: Keeping Swedish keywords as they match exact website output
-                        val fractionText = fullText.substring(start, end)
-                            .replace("Felanmäl", "")
-                            .replace(Regex("_SPLIT_[0-9]+_"), "") // Cleans up leftover markers
-                            .trim()
-
-                        if (fractionText.isNotEmpty() && fractionText.length < 60 && !fractionText.contains("Id:") && !fractionText.contains("Återvinningsstation")) {
-                            var url = img.attr("src")
-                            if (url.startsWith("/")) url = "https://www.sopor.nu$url"
-
-                            // Ensure no duplicates are added
-                            if (parsedFractions.none { it.name == fractionText }) {
-                                parsedFractions.add(FractionItem(fractionText, url))
-                            }
-                        }
+                    if (parsedFractions.none { it.name == fractionText }) {
+                        parsedFractions.add(FractionItem(fractionText, url))
                     }
                 }
             }
-
-            fractions = if (parsedFractions.isEmpty()) {
-                listOf(FractionItem("No waste categories found", ""))
-            } else {
-                parsedFractions
-            }
-
+            fractions = parsedFractions
         } catch (e: Exception) {
             fractions = listOf(FractionItem("Could not load data", ""))
         }
@@ -371,46 +339,33 @@ fun StationDetailView(station: RecyclingStation) {
         Text(station.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DarkText)
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (station.fullBins.isNotEmpty()) {
+            Text("Reported Full:", color = BadgeRed, fontWeight = FontWeight.Bold)
+            station.fullBins.forEach { Text("• $it", color = BadgeRed, modifier = Modifier.padding(start = 8.dp)) }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Text("Accepts the following waste:", fontWeight = FontWeight.SemiBold, color = LightText)
+        Spacer(modifier = Modifier.height(12.dp))
+
         if (isLoading) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = PrimaryGreen, strokeWidth = 2.dp)
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Fetching exact availability from Sopor.nu...", color = Color.Gray, fontSize = 14.sp)
-            }
+            CircularProgressIndicator(color = PrimaryGreen)
         } else {
-            Text("Accepts the following waste:", fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = LightText)
-            Spacer(modifier = Modifier.height(12.dp))
-
             fractions.forEach { fraction ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 6.dp)
-                ) {
-                    if (fraction.iconUrl.isNotEmpty()) {
-                        // Uses our custom svgImageLoader, falling back to a checkmark on error
-                        SubcomposeAsyncImage(
-                            model = fraction.iconUrl,
-                            imageLoader = svgImageLoader,
-                            contentDescription = fraction.name,
-                            modifier = Modifier.size(28.dp),
-                            loading = { CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp) },
-                            error = { Icon(Icons.Default.CheckCircle, "Check", tint = PrimaryGreen, modifier = Modifier.size(24.dp)) }
-                        )
-                    } else {
-                        Icon(Icons.Default.CheckCircle, "Check", tint = PrimaryGreen, modifier = Modifier.size(24.dp))
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Text(
-                        text = fraction.name,
-                        fontSize = 15.sp,
-                        color = DarkText
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+                    SubcomposeAsyncImage(
+                        model = fraction.iconUrl,
+                        imageLoader = svgImageLoader,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        error = { Icon(Icons.Default.CheckCircle, null, tint = PrimaryGreen) }
                     )
+                    Spacer(Modifier.width(12.dp))
+                    Text(fraction.name, fontSize = 15.sp, color = DarkText)
                 }
             }
         }
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(Modifier.height(48.dp))
     }
 }
 
