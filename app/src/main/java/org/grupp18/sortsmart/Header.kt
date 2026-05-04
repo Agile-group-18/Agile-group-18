@@ -1,16 +1,8 @@
 package org.grupp18.sortsmart
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
@@ -22,10 +14,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
 // --- Theming & Colors ---
 // Extracted colors for consistency and easier updates
@@ -37,7 +31,7 @@ private val AvatarPlaceholderColor = Color.Gray
 @Preview(showBackground = true)
 @Composable
 fun HeaderPreview() {
-    Header()
+    Header(currentDestination = AppDestinations.HOME, onNavigate = {})
 }
 
 /**
@@ -47,7 +41,11 @@ fun HeaderPreview() {
  * @param modifier Optional modifier for adjusting the layout from the parent.
  */
 @Composable
-fun Header(modifier: Modifier = Modifier) {
+fun Header(
+    currentDestination: AppDestinations,
+    onNavigate: (AppDestinations) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -60,7 +58,7 @@ fun Header(modifier: Modifier = Modifier) {
         HeaderLogoAndTitle()
 
         // --- Right Side ---
-        HeaderActions()
+        HeaderActions(onNavigate = onNavigate)
     }
 }
 
@@ -101,13 +99,16 @@ private fun HeaderLogoAndTitle() {
  * Composable for the right side of the header containing user-specific actions.
  */
 @Composable
-private fun HeaderActions() {
+private fun HeaderActions(onNavigate: (AppDestinations) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         NotificationBell(hasUnread = true)
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        ProfileAvatar()
+        ProfileAvatar(
+            imageUrl = "https://i.pravatar.cc/300",
+            onClick = {onNavigate(AppDestinations.PROFILE) }
+            )
     }
 }
 
@@ -133,10 +134,7 @@ private fun NotificationBell(hasUnread: Boolean) {
                 modifier = Modifier
                     .size(8.dp)
                     .align(Alignment.TopEnd) // Anchors to the top-right of the parent Box
-                    .offset(
-                        x = (-4).dp,
-                        y = 4.dp
-                    ) // Fine-tunes the exact position to sit on the bell
+                    .offset(x = (-4).dp, y = 4.dp) // Fine-tunes the exact position to sit on the bell
                     .clip(CircleShape)
                     .background(NotificationBadgeColor)
             )
@@ -148,12 +146,17 @@ private fun NotificationBell(hasUnread: Boolean) {
  * A placeholder for the user's profile picture.
  */
 @Composable
-private fun ProfileAvatar() {
-    // TODO: Replace this Box with an AsyncImage (like Coil) or Image composable later
-    Box(
+private fun ProfileAvatar(
+    imageUrl: String?,
+    onClick: () -> Unit
+) {
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Profile Avatar",
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(AvatarPlaceholderColor)
+            .clickable {onClick()},
+        contentScale = ContentScale.Crop
     )
 }
