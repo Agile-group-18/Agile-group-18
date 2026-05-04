@@ -29,9 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import coil.ImageLoader
 import coil.compose.SubcomposeAsyncImage
-import coil.decode.SvgDecoder
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.BitmapDescriptor
@@ -45,6 +43,12 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import org.jsoup.Jsoup
+import androidx.lifecycle.viewmodel.compose.viewModel
+import org.grupp18.sortsmart.viewmodel.MapViewModel
+import androidx.compose.ui.platform.LocalContext
+import coil.ImageLoader
+import coil.compose.SubcomposeAsyncImage
+import coil.decode.SvgDecoder
 
 // --- THEME & CONSTANTS ---
 private val PrimaryGreen = Color(0xFF386B21)
@@ -54,15 +58,18 @@ private val BadgeRed = Color(0xFFFA2B35)
 
 // --- DATA MODELS ---
 
-/**
- * Represents a recycling station's core data on the map.
- */
+data class WasteCategory(
+    val name: String,
+    val iconUrl: String?
+)
+
+// 2. Update your RecyclingStation to use the new WasteCategory list
 data class RecyclingStation(
     val name: String,
     val location: LatLng,
     val externalId: String,
     val municipalityCode: String,
-    val acceptedCategories: List<String>,
+    val acceptedCategories: List<WasteCategory>,
     val fullBins: List<String> = emptyList()
 )
 
@@ -79,57 +86,42 @@ data class FractionItem(
 /**
  * The primary screen displaying the Google Map, filter categories, and station markers.
  */
+
+
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MapScreen(modifier: Modifier = Modifier) {
+fun MapScreen(
+    modifier: Modifier = Modifier,
+    viewModel: MapViewModel = viewModel() // 1. Inject the ViewModel
+) {
     val context = LocalContext.current
     val categories = listOf("All", "Plastic", "Paper", "Glass", "Metal", "Hazardous")
     var selectedCategory by remember { mutableStateOf("All") }
 
     // UI States
     var selectedStationId by remember { mutableStateOf<String?>(null) }
-    var allStations by remember { mutableStateOf<List<RecyclingStation>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLegendExpanded by remember { mutableStateOf(false) }
 
-    // 1. Fetch all stations from the Avfall Sverige API
-    LaunchedEffect(Unit) {
-        try {
-            val response = RetrofitClient.apiService.getAllStations()
-            allStations = response.avsList.mapNotNull { apiStation ->
-                val latDouble = apiStation.lat?.toDoubleOrNull()
-                val lngDouble = apiStation.longitude?.toDoubleOrNull()
+    // 2. Observe the state from the ViewModel
+    val allStations by viewModel.stations.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
-                if (latDouble != null && lngDouble != null) {
-                    RecyclingStation(
-                        name = apiStation.name ?: "Unknown station",
-                        location = LatLng(latDouble, lngDouble),
-                        externalId = apiStation.externalAvsId ?: "",
-                        municipalityCode = apiStation.municipalityCode ?: "",
-                        acceptedCategories = listOf("Plastic", "Paper", "Glass", "Metal", "Hazardous")
-                    )
-                } else null
-            }
-            isLoading = false
-        } catch (e: Exception) {
-            errorMessage = "Network error: ${e.localizedMessage}"
-            isLoading = false
+    // 3. Filter stations based on the selected category
+    val filteredStations = remember(selectedCategory, allStations) {
+        if (selectedCategory == "All") allStations
+        else allStations.filter { station ->
+            station.acceptedCategories.any { category -> category.name == selectedCategory }
         }
     }
 
-    // 2. Filter stations based on the selected category
-    val filteredStations = remember(selectedCategory, allStations) {
-        if (selectedCategory == "All") allStations
-        else allStations.filter { it.acceptedCategories.contains(selectedCategory) }
-    }
-
-    // 3. Camera & GPS Configuration
+    // 4. Camera & GPS Configuration (Keep this exactly as you had it!)
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     val hasLocationPermission = ContextCompat.checkSelfPermission(
         context, Manifest.permission.ACCESS_FINE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
-
     val mapProperties = MapProperties(isMyLocationEnabled = hasLocationPermission)
     val gothenburg = LatLng(57.708870, 11.974560)
     val cameraPositionState = rememberCameraPositionState {
@@ -156,12 +148,10 @@ fun MapScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    // 4. Local Data Update Function
-    // This allows the UI to react immediately when a report is submitted
+    // 5. Local Data Update Function
+    // We now just pass this intent to the ViewModel!
     val handleReportSubmission: (String, List<String>) -> Unit = { id, reportedBins ->
-        allStations = allStations.map {
-            if (it.externalId == id) it.copy(fullBins = reportedBins) else it
-        }
+        viewModel.updateStationReport(id, reportedBins)
     }
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -287,41 +277,15 @@ fun StationDetailView(
     station: RecyclingStation,
     onReportSent: (List<String>) -> Unit
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var fractions by remember { mutableStateOf<List<FractionItem>>(emptyList()) }
-
     // Reporting States
     var isReporting by remember { mutableStateOf(false) }
     var selectedFullBins by remember { mutableStateOf(setOf<String>()) }
     var showSuccessMessage by remember { mutableStateOf(false) }
 
+    // Restore the SVG Image Loader
     val context = LocalContext.current
     val svgImageLoader = remember {
         ImageLoader.Builder(context).components { add(SvgDecoder.Factory()) }.build()
-    }
-
-    LaunchedEffect(station) {
-        isLoading = true
-        try {
-            val response = SoporRetrofitClient.apiService.getStationDetails(station.externalId, station.municipalityCode)
-            val document = Jsoup.parse(response.string())
-            val parsedFractions = mutableListOf<FractionItem>()
-            document.select("li").forEach { li ->
-                val img = li.select("img").firstOrNull() ?: return@forEach
-                val fractionText = li.text().replace("Felanmäl", "").replace("Återvinningsstation", "").trim()
-
-                // Fix for duplicates and clean data
-                if (fractionText.isNotEmpty() && fractionText.length < 60 && !fractionText.contains("Id:")) {
-                    var url = img.attr("src")
-                    if (url.startsWith("/")) url = "https://www.sopor.nu$url"
-                    if (parsedFractions.none { it.name == fractionText }) {
-                        parsedFractions.add(FractionItem(fractionText, url))
-                    }
-                }
-            }
-            fractions = parsedFractions
-        } catch (e: Exception) { /* Handle error */ }
-        isLoading = false
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp)) {
@@ -337,17 +301,23 @@ fun StationDetailView(
 
         if (isReporting) {
             Text("Which bins are full?", fontWeight = FontWeight.SemiBold, color = DarkText)
-            fractions.forEach { fraction ->
+
+            station.acceptedCategories.forEach { category ->
                 Row(
                     Modifier.fillMaxWidth().clickable {
-                        selectedFullBins = if (selectedFullBins.contains(fraction.name)) selectedFullBins - fraction.name else selectedFullBins + fraction.name
+                        selectedFullBins = if (selectedFullBins.contains(category.name)) {
+                            selectedFullBins - category.name
+                        } else {
+                            selectedFullBins + category.name
+                        }
                     }.padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(checked = selectedFullBins.contains(fraction.name), onCheckedChange = null)
-                    Text(fraction.name, modifier = Modifier.padding(start = 8.dp))
+                    Checkbox(checked = selectedFullBins.contains(category.name), onCheckedChange = null)
+                    Text(category.name, modifier = Modifier.padding(start = 8.dp))
                 }
             }
+
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { isReporting = false }) { Text("Cancel") }
                 Button(
@@ -355,7 +325,7 @@ fun StationDetailView(
                         onReportSent(selectedFullBins.toList())
                         isReporting = false
                         showSuccessMessage = true
-                        selectedFullBins = emptySet()
+                        selectedFullBins = emptySet<String>()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                 ) { Text("Submit Report") }
@@ -368,14 +338,31 @@ fun StationDetailView(
             }
 
             Text("Accepts waste:", fontWeight = FontWeight.SemiBold, color = LightText)
-            fractions.forEach { fraction ->
+
+            station.acceptedCategories.forEach { category ->
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
-                    SubcomposeAsyncImage(model = fraction.iconUrl, imageLoader = svgImageLoader, contentDescription = null, modifier = Modifier.size(28.dp), error = { Icon(Icons.Default.CheckCircle, null, tint = PrimaryGreen) })
+                    // Use the image if it exists, otherwise fallback to the checkmark
+                    if (category.iconUrl != null) {
+                        SubcomposeAsyncImage(
+                            model = category.iconUrl,
+                            imageLoader = svgImageLoader,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            error = { Icon(Icons.Default.CheckCircle, null, tint = PrimaryGreen) }
+                        )
+                    } else {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(28.dp))
+                    }
                     Spacer(Modifier.width(12.dp))
-                    Text(fraction.name, fontSize = 15.sp, color = DarkText)
+                    Text(category.name, fontSize = 15.sp, color = DarkText)
                 }
             }
-            Button(onClick = { isReporting = true; showSuccessMessage = false }, modifier = Modifier.fillMaxWidth().padding(top = 24.dp), colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)) {
+
+            Button(
+                onClick = { isReporting = true; showSuccessMessage = false },
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+            ) {
                 Text("Report Status")
             }
         }

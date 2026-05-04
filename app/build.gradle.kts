@@ -69,6 +69,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("io.coil-kt:coil-svg:2.6.0")
 
+    //
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+
     // --- Unit & UI Testing ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
