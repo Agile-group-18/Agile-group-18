@@ -142,14 +142,19 @@ fun MapScreen(
         }
     }
 
-    val mapProperties = MapProperties(
-        isMyLocationEnabled = hasLocationPermission,
-        mapStyleOptions = MapStyleOptions.loadRawResourceStyle(
+    val mapStyleOptions = remember(context) {
+        MapStyleOptions.loadRawResourceStyle(
             context,
             R.raw.map_style
         )
-    )
+    }
 
+    val mapProperties = remember(hasLocationPermission, mapStyleOptions) {
+        MapProperties(
+            isMyLocationEnabled = hasLocationPermission,
+            mapStyleOptions = mapStyleOptions
+        )
+    }
 
     val mapUiSettings = MapUiSettings(
         zoomControlsEnabled = false,
