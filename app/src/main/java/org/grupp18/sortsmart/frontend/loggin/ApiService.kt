@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.*
 
-// ─── Request bodies ───────────────────────────────────────────────────────────
+//Request bodies
 
 data class RegisterRequest(
     val username: String, // Krav: 3-50 tecken, regex ^[a-zA-Z0-9_-]+$
@@ -37,7 +37,7 @@ data class UpdateProfileRequest(
     val email: String? = null
 )
 
-// ─── Response bodies ──────────────────────────────────────────────────────────
+//Response bodies
 
 data class AuthResponse(
     @SerializedName("access_token") val accessToken: String,
@@ -86,11 +86,11 @@ data class StationReportRequest(
     val note: String? = null
 )
 
-// ─── Retrofit interface ───────────────────────────────────────────────────────
+//Retrofit interface
 
 interface ApiService {
 
-    // ── Auth ──
+    //Auth
 
     @POST("auth/register")
     suspend fun register(@Body body: RegisterRequest): Response<AuthResponse>

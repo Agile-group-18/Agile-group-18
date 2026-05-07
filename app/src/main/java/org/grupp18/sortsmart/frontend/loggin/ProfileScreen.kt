@@ -33,21 +33,17 @@ private val DangerColor      = Color(0xFFB00020)
  * Profile screen.
  * - Not logged in → shows "Log In" button (bottom-left) that opens [LoginDialog].
  * - Logged in     → shows profile info with edit and logout options.
- *
- * @param resetToken  If non-null, the login dialog opens automatically on the reset password screen.
  */
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
     authViewModel: AuthViewModel = viewModel(),
-    profileViewModel: ProfileViewModel = viewModel(),
-    resetToken: String? = null
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
     val isLoggedIn  by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
 
-    // Open dialog automatically if a reset token was passed in from a deep link
-    var showLoginDialog by remember { mutableStateOf(resetToken != null) }
+    var showLoginDialog by remember { mutableStateOf(false) }
 
     // Load profile whenever the user logs in
     LaunchedEffect(isLoggedIn) {
@@ -57,7 +53,7 @@ fun ProfileScreen(
     Box(modifier = modifier.background(BackgroundColor)) {
 
         when {
-            // Not logged in
+            //Not logged in
             !isLoggedIn -> {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -84,7 +80,7 @@ fun ProfileScreen(
                     )
                 }
 
-                // Log In button — bottom left
+                // Log In button
                 Button(
                     onClick = { showLoginDialog = true },
                     modifier = Modifier
@@ -103,7 +99,7 @@ fun ProfileScreen(
                 }
             }
 
-            // Loading
+            //Loading
             profileState is ProfileState.Loading -> {
                 CircularProgressIndicator(
                     color = ActiveColor,
@@ -111,7 +107,7 @@ fun ProfileScreen(
                 )
             }
 
-            // Error
+            //Error
             profileState is ProfileState.Error -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
@@ -130,13 +126,13 @@ fun ProfileScreen(
                 }
             }
 
-            // Loaded
+            //Loaded
             profileState is ProfileState.Loaded -> {
                 val profile = (profileState as ProfileState.Loaded).profile
                 LoggedInProfile(
                     username = profile.username,
                     email = profile.email,
-                    joinedDate = profile.createdAt,
+                    joinedDate = profile.createdAt, // Ändrat från profile.created_at till profile.createdAt
                     onSave = { newUsername, newEmail ->
                         profileViewModel.updateProfile(newUsername, newEmail)
                     },
@@ -149,18 +145,17 @@ fun ProfileScreen(
         }
     }
 
-    // Auth dialog — pass reset token so it opens on the correct screen
+    // Auth dialog
     if (showLoginDialog) {
         LoginDialog(
             onDismiss = { showLoginDialog = false },
             onAuthSuccess = { showLoginDialog = false },
-            authViewModel = authViewModel,
-            resetToken = resetToken
+            authViewModel = authViewModel
         )
     }
 }
 
-// Logged-in profile view
+//Logged-in profile view
 @Composable
 private fun LoggedInProfile(
     username: String,
@@ -216,7 +211,7 @@ private fun LoggedInProfile(
 
         Spacer(Modifier.height(28.dp))
 
-        // Edit fields
+        //Edit fields
         OutlinedTextField(
             value = editUsername,
             onValueChange = { editUsername = it },
@@ -268,7 +263,7 @@ private fun LoggedInProfile(
 
         Spacer(Modifier.height(20.dp))
 
-        // Action buttons
+        //Action buttons
         if (isEditing) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
@@ -324,7 +319,7 @@ private fun LoggedInProfile(
 
         Spacer(Modifier.weight(1f))
 
-        // Delete account
+        // Delete account, danger zone at the very bottom
         TextButton(
             onClick = { showDeleteDialog = true },
             colors = ButtonDefaults.textButtonColors(contentColor = DangerColor)
@@ -335,7 +330,7 @@ private fun LoggedInProfile(
         }
     }
 
-    // Delete confirmation dialog
+    //Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },

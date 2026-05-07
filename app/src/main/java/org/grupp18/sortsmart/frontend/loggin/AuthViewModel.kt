@@ -12,7 +12,6 @@ sealed class AuthState {
     data class Success(val message: String) : AuthState()
     data class Error(val message: String) : AuthState()
     object RegisteredPendingVerification : AuthState()
-    object PasswordResetSuccess : AuthState()
 }
 
 class AuthViewModel : ViewModel() {
@@ -23,7 +22,7 @@ class AuthViewModel : ViewModel() {
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn
 
-    // Register
+    //Register
 
     fun register(username: String, email: String, password: String) {
         viewModelScope.launch {
@@ -34,10 +33,6 @@ class AuthViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.RegisteredPendingVerification
-                } else if (response.code() == 400) {
-                    _authState.value = AuthState.Error("Email already exists")
-                } else if (response.code() == 422) {
-                    _authState.value = AuthState.Error("Password must be minimum 8 characters and username must have 3 minimum characters")
                 } else {
                     _authState.value = AuthState.Error("Registration failed: ${response.code()}")
                 }
@@ -47,7 +42,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Login
+    //Login
 
     fun login(username: String, password: String) {
         viewModelScope.launch {
@@ -64,11 +59,8 @@ class AuthViewModel : ViewModel() {
                     }
                 } else {
                     _authState.value = AuthState.Error(
-                        when (response.code()) {
-                            401  -> "Wrong username or password"
-                            403  -> "Please verify your email before logging in"
-                            else -> "Login failed: ${response.code()}"
-                        }
+                        if (response.code() == 401) "Wrong username or password"
+                        else "Login failed: ${response.code()}"
                     )
                 }
             } catch (e: Exception) {
@@ -77,7 +69,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Logout
+    //Logout
 
     fun logout() {
         viewModelScope.launch {
@@ -90,47 +82,19 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // Forgot password — sends reset email
+    //Forgot password
 
-    fun forgotPassword(usernameOrEmail: String) {
+    fun forgotPassword(email: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.api.forgotPassword(
-                    ForgotPasswordRequest(usernameOrEmail = usernameOrEmail)
+                    ForgotPasswordRequest(usernameOrEmail = email)
                 )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.Success("Password reset email sent!")
                 } else {
-                    _authState.value = AuthState.Error(
-                        when (response.code()) {
-                            429  -> "Too many attempts. Please wait a few minutes and try again."
-                            404  -> "No account found with that username or email."
-                            else -> "Could not send reset email: ${response.code()}"
-                        }
-                    )
-                }
-            } catch (e: Exception) {
-                _authState.value = AuthState.Error("Network error: ${e.localizedMessage}")
-            }
-        }
-    }
-
-    // Reset password — submits token + new password
-
-    fun resetPassword(token: String, newPassword: String) {
-        viewModelScope.launch {
-            _authState.value = AuthState.Loading
-            try {
-                val response = RetrofitClient.api.resetPassword(
-                    ResetPasswordRequest(token = token, newPassword = newPassword)
-                )
-                if (response.isSuccessful) {
-                    _authState.value = AuthState.PasswordResetSuccess
-                } else if (response.code() == 422) {
-                    _authState.value = AuthState.Error("Invalid or expired reset token")
-                } else {
-                    _authState.value = AuthState.Error("Reset failed: ${response.code()}")
+                    _authState.value = AuthState.Error("Could not send reset email: ${response.code()}")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Network error: ${e.localizedMessage}")

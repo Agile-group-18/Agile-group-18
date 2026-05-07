@@ -21,7 +21,7 @@ class ProfileViewModel : ViewModel() {
     private val _profileState = MutableStateFlow<ProfileState>(ProfileState.Idle)
     val profileState: StateFlow<ProfileState> = _profileState
 
-    // ── Load ──────────────────────────────────────────────────────────────────
+    //Load
 
     fun loadProfile() {
         viewModelScope.launch {
@@ -39,13 +39,12 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── Update ────────────────────────────────────────────────────────────────
+    //Update
 
     fun updateProfile(username: String, email: String) {
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {
-                // Ensure this matches the function name in ApiService.kt
                 val response = RetrofitClient.api.patchProfile(
                     UpdateProfileRequest(username = username, email = email)
                 )
@@ -63,7 +62,7 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+    //Delete
 
     fun deleteProfile(onDeleted: () -> Unit) {
         viewModelScope.launch {
