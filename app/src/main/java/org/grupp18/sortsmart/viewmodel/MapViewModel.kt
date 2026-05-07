@@ -45,29 +45,42 @@ class MapViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     init {
-        loadCachedData()
-        // TODO: This should check for data age and only sync if the cache is stale
-        syncStationsFromServer()
+        initializeData()
+    }
+
+    private fun initializeData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            loadCachedDataInternal()
+
+            val shouldSync = repository.shouldInitialSync() || repository.shouldRefreshStations()
+            if (shouldSync) {
+                syncStationsFromServer()
+            }
+        }
     }
 
     fun loadCachedData() {
         viewModelScope.launch(Dispatchers.IO) {
-            _isLoadingMarkers.value = true
-
-            val cachedCategories = repository.getCachedCategories()
-            val cachedMarkers = repository.getCachedMapMarkers(
-                selectedCategoryIds = _selectedCategoryIds.value,
-                problemOnly = _problemOnly.value
-            )
-
-            Log.d("SortSmartCache", "Loaded ${cachedCategories.size} categories from Room")
-            Log.d("SortSmartCache", "Loaded ${cachedMarkers.size} station markers from Room")
-
-            _categories.value = cachedCategories
-            _stationMarkers.value = cachedMarkers
-
-            _isLoadingMarkers.value = false
+            loadCachedDataInternal()
         }
+    }
+
+    private suspend fun loadCachedDataInternal() {
+        _isLoadingMarkers.value = true
+
+        val cachedCategories = repository.getCachedCategories()
+        val cachedMarkers = repository.getCachedMapMarkers(
+            selectedCategoryIds = _selectedCategoryIds.value,
+            problemOnly = _problemOnly.value
+        )
+
+        Log.d("SortSmartCache", "Loaded ${cachedCategories.size} categories from Room")
+        Log.d("SortSmartCache", "Loaded ${cachedMarkers.size} station markers from Room")
+
+        _categories.value = cachedCategories
+        _stationMarkers.value = cachedMarkers
+
+        _isLoadingMarkers.value = false
     }
 
     fun syncStationsFromServer() {
