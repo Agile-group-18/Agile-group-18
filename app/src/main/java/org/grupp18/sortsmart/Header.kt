@@ -1,7 +1,16 @@
 package org.grupp18.sortsmart
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
@@ -124,7 +133,10 @@ private fun NotificationBell(hasUnread: Boolean) {
                 modifier = Modifier
                     .size(8.dp)
                     .align(Alignment.TopEnd) // Anchors to the top-right of the parent Box
-                    .offset(x = (-4).dp, y = 4.dp) // Fine-tunes the exact position to sit on the bell
+                    .offset(
+                        x = (-4).dp,
+                        y = 4.dp
+                    ) // Fine-tunes the exact position to sit on the bell
                     .clip(CircleShape)
                     .background(NotificationBadgeColor)
             )
