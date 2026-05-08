@@ -106,7 +106,7 @@ fun CustomBottomBar(
                 .shadow(elevation = 15.dp, shape = CircleShape)
                 .clip(CircleShape)
                 .background(ActiveColor)
-                .clickable { onNavigate(AppDestinations.HOME) },
+                .clickable { onNavigate(AppDestinations.SEARCH) },
             contentAlignment = Alignment.Center
         ) {
             Icon(

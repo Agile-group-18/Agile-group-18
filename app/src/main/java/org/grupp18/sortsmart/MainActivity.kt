@@ -43,7 +43,8 @@ class MainActivity : ComponentActivity() {
 enum class AppDestinations {
     MAP,
     HOME,
-    SCORES
+    SCORES,
+    SEARCH
 }
 
 /**
@@ -92,6 +93,15 @@ fun SortSmartApp() {
                     // Placeholder for your future Scores screen
                     ScoresScreen()
                 }
+                AppDestinations.SEARCH -> {
+                    // Search screen
+                    SearchScreen(
+                        onClose = {
+                            currentDestination = AppDestinations.HOME
+                        }
+                    )
+                }
+
             }
         }
     }
