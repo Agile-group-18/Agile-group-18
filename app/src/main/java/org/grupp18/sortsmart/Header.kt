@@ -124,7 +124,10 @@ private fun NotificationBell(hasUnread: Boolean) {
                 modifier = Modifier
                     .size(8.dp)
                     .align(Alignment.TopEnd) // Anchors to the top-right of the parent Box
-                    .offset(x = (-4).dp, y = 4.dp) // Fine-tunes the exact position to sit on the bell
+                    .offset(
+                        x = (-4).dp,
+                        y = 4.dp
+                    ) // Fine-tunes the exact position to sit on the bell
                     .clip(CircleShape)
                     .background(NotificationBadgeColor)
             )

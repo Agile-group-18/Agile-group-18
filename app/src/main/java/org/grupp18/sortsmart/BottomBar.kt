@@ -111,7 +111,7 @@ fun CustomBottomBar(
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Search / Home",
+                contentDescription = "Search",
                 tint = Color.White,
                 modifier = Modifier.size(30.dp)
             )

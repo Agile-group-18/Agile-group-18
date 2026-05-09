@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
+import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
 /**
@@ -53,14 +54,13 @@ enum class AppDestinations {
  */
 @Composable
 fun SortSmartApp() {
-    // Track the currently active tab.
-    // rememberSaveable ensures the state survives configuration changes (like screen rotations).
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
+    // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            Header() // The custom top bar we built previously
+            Header()
         },
         bottomBar = {
             CustomBottomBar(
@@ -72,36 +72,39 @@ fun SortSmartApp() {
         }
     ) { innerPadding ->
 
-        // The main content area. We apply innerPadding to ensure content
-        // isn't hidden behind the custom Header or BottomBar.
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Route to the correct screen based on the selected destination
             when (currentDestination) {
                 AppDestinations.HOME -> {
-                    // The default Android greeting placeholder
-                    Greeting(name = "Android")
+                    Greeting(
+                        name = "Android",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
                 }
+
                 AppDestinations.MAP -> {
-                    // Assumes MapScreen is built in a separate file
-                    MapScreen(modifier = Modifier.fillMaxSize())
+                    MapScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
+
                 AppDestinations.SCORES -> {
-                    // Placeholder for your future Scores screen
-                    ScoresScreen()
+                    ScoresScreen(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
                 }
                 AppDestinations.SEARCH -> {
-                    // Search screen
                     SearchScreen(
                         onClose = {
                             currentDestination = AppDestinations.HOME
                         }
                     )
                 }
-
             }
         }
     }
