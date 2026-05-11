@@ -12,6 +12,7 @@ sealed class AuthState {
     data class Success(val message: String) : AuthState()
     data class Error(val message: String) : AuthState()
     object RegisteredPendingVerification : AuthState()
+    object PasswordResetSuccess : AuthState()
 }
 
 class AuthViewModel : ViewModel() {
@@ -33,13 +34,13 @@ class AuthViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.RegisteredPendingVerification
-                } else if(response.code() == 400){
+                } else if (response.code() == 400) {
                     _authState.value = AuthState.Error("Email already exists")
-                }
-                else if(response.code() == 422){
+                } else if (response.code() == 422) {
                     _authState.value = AuthState.Error("Password must be minimum 8 characters and username must have 3 minimum characters")
-                }
-                else{
+                } else if(response.code() == 429){
+                    _authState.value = AuthState.Error("Could not send reset email, too many requests too servers")
+                } else {
                     _authState.value = AuthState.Error("Registration failed: ${response.code()}")
                 }
             } catch (e: Exception) {
@@ -88,19 +89,41 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    //Forgot password
+    //Forgot password — sends reset email
 
-    fun forgotPassword(email: String) {
+    fun forgotPassword(usernameOrEmail: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             try {
                 val response = RetrofitClient.api.forgotPassword(
-                    ForgotPasswordRequest(usernameOrEmail = email)
+                    ForgotPasswordRequest(usernameOrEmail = usernameOrEmail)
                 )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.Success("Password reset email sent!")
+                } else if(response.code() == 429){
+                    _authState.value = AuthState.Error("Could not send reset email, too many requests too servers")
+                }
+            } catch (e: Exception) {
+                _authState.value = AuthState.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    //Reset password — submits token + new password
+
+    fun resetPassword(token: String, newPassword: String) {
+        viewModelScope.launch {
+            _authState.value = AuthState.Loading
+            try {
+                val response = RetrofitClient.api.resetPassword(
+                    ResetPasswordRequest(token = token, newPassword = newPassword)
+                )
+                if (response.isSuccessful) {
+                    _authState.value = AuthState.PasswordResetSuccess
+                } else if (response.code() == 422) {
+                    _authState.value = AuthState.Error("Invalid or expired reset token")
                 } else {
-                    _authState.value = AuthState.Error("Could not send reset email: ${response.code()}")
+                    _authState.value = AuthState.Error("Reset failed: ${response.code()}")
                 }
             } catch (e: Exception) {
                 _authState.value = AuthState.Error("Network error: ${e.localizedMessage}")
