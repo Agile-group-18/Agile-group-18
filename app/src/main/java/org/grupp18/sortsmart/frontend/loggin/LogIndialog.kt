@@ -40,6 +40,9 @@ private val SuccessColor    = Color(0xFF386B21)
 // Which "page" the dialog is currently showing
 private enum class DialogMode { LOGIN, REGISTER, FORGOT_PASSWORD, VERIFY_EMAIL }
 
+// Backend validation rules
+private val USERNAME_REGEX = Regex("^[a-zA-Z0-9_-]+$")
+
 /**
  * Full-screen auth dialog.
  * Defaults to Log In. User can switch to Create Account or Forgot Password.
@@ -126,19 +129,33 @@ private fun LoginDialogContent(
     fun switchTo(newMode: DialogMode) { clearAll(); mode = newMode }
 
     fun validate(): Boolean {
-        usernameError = if (mode != DialogMode.FORGOT_PASSWORD && username.isBlank())
-            "Username is required" else null
+        // Username: required for login + register, 3-50 chars, only a-z A-Z 0-9 _ -
+        usernameError = when {
+            mode == DialogMode.FORGOT_PASSWORD    -> null
+            username.isBlank()                   -> "Username is required"
+            username.length < 3                  -> "Username must be at least 3 characters"
+            username.length > 50                 -> "Username must be at most 50 characters"
+            !USERNAME_REGEX.matches(username)    -> "Only letters, numbers, _ and - are allowed"
+            else                                 -> null
+        }
+
+        // Email: required for register + forgot password
         emailError = when {
             mode == DialogMode.LOGIN -> null
             email.isBlank()         -> "Email is required"
             !email.contains("@")    -> "Enter a valid email address"
             else                    -> null
         }
-        passwordError = if (mode == DialogMode.FORGOT_PASSWORD) null else when {
-            password.isBlank()  -> "Password is required"
-            password.length < 6 -> "Must be at least 6 characters"
-            else                -> null
+
+        // Password: required for login + register, 8-128 chars
+        passwordError = when {
+            mode == DialogMode.FORGOT_PASSWORD -> null
+            password.isBlank()                -> "Password is required"
+            password.length < 8               -> "Password must be at least 8 characters"
+            password.length > 128             -> "Password must be at most 128 characters"
+            else                              -> null
         }
+
         return listOf(usernameError, emailError, passwordError).all { it == null }
     }
 

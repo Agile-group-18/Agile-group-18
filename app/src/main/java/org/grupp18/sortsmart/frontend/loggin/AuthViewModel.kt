@@ -33,7 +33,13 @@ class AuthViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     _authState.value = AuthState.RegisteredPendingVerification
-                } else {
+                } else if(response.code() == 400){
+                    _authState.value = AuthState.Error("Email already exists")
+                }
+                else if(response.code() == 422){
+                    _authState.value = AuthState.Error("Password must be minimum 8 characters and username must have 3 minimum characters")
+                }
+                else{
                     _authState.value = AuthState.Error("Registration failed: ${response.code()}")
                 }
             } catch (e: Exception) {
