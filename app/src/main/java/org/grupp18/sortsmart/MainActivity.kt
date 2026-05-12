@@ -100,6 +100,9 @@ fun SortSmartApp() {
                 }
                 AppDestinations.SEARCH -> {
                     SearchScreen(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                         onClose = {
                             currentDestination = AppDestinations.HOME
                         }
