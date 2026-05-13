@@ -56,6 +56,7 @@ enum class AppDestinations {
 fun SortSmartApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
+    // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -98,14 +99,15 @@ fun SortSmartApp() {
                     )
                 }
                 AppDestinations.SEARCH -> {
-                    // Search screen
                     SearchScreen(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
                         onClose = {
                             currentDestination = AppDestinations.HOME
                         }
                     )
                 }
-
             }
         }
     }
