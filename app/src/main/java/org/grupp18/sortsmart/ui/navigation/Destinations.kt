@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart.ui.model.navigation
+package org.grupp18.sortsmart.ui.navigation
 
 import kotlinx.serialization.Serializable
 

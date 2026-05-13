@@ -1,15 +1,24 @@
 package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Eco
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -21,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,14 +37,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // ── Brand colors ────────────────────────────────────────────────────────────
-private val GreenDark        = Color(0xFF2D5A1B)   // impact card background
-private val GreenMedium      = Color(0xFF386B21)   // location icon bg, badge bg
-private val GreenLight       = Color(0xFFD4E8C2)   // eco-tip card background
-private val GreenLinkText    = Color(0xFF3A6E24)   // "View on map" text
-private val NeutralSurface   = Color(0xFFF5F5F0)   // nearest-station card bg
-private val NeutralBg        = Color(0xFFF8F8F4)   // page background
-private val DividerOnGreen   = Color(0xFF4A7A30)   // divider inside the green card
-private val TextOnGreen      = Color(0xFFFFFFFF)
+private val GreenDark = Color(0xFF2D5A1B)   // impact card background
+private val GreenMedium = Color(0xFF386B21)   // location icon bg, badge bg
+private val GreenLight = Color(0xFFD4E8C2)   // eco-tip card background
+private val GreenLinkText = Color(0xFF3A6E24)   // "View on map" text
+private val NeutralSurface = Color(0xFFF5F5F0)   // nearest-station card bg
+private val NeutralBg = Color(0xFFF8F8F4)   // page background
+private val DividerOnGreen = Color(0xFF4A7A30)   // divider inside the green card
+private val TextOnGreen = Color(0xFFFFFFFF)
 private val TextOnGreenMuted = Color(0xFFB8D4A0)
 
 @Preview(showBackground = true)
@@ -47,8 +55,8 @@ fun HomeScreenPreview() {
 
 @Composable
 fun HomeScreen(
-    onWastebasketClick: () -> Unit = {},
-    modifier: Modifier = Modifier) {
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -71,8 +79,6 @@ fun HomeScreen(
         EcoTipCard()
 
         NearestStationCard()
-
-        WastebasketRow(onClick = onWastebasketClick)
     }
 }
 
@@ -276,55 +282,6 @@ private fun NearestStationCard() {
                     color = GreenLinkText
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun WastebasketRow(
-    onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(NeutralSurface)
-            .clickable(onClick = onClick)  // ← make the whole row tappable
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Delete,
-                contentDescription = null,
-                tint = Color(0xFF3A3D35),
-                modifier = Modifier.size(20.dp)
-            )
-            Text(
-                text = "Your Wastebasket",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF1A1C17)
-            )
-        }
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(50.dp))
-                .background(GreenMedium)
-                .padding(horizontal = 14.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = "3 ITEMS",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                letterSpacing = 0.5.sp
-            )
         }
     }
 }
