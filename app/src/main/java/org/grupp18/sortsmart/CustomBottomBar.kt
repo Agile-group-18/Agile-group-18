@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Place
@@ -102,7 +103,7 @@ fun CustomBottomBar(
             // Scores item
             BottomBarItem(
                 title = "Scores",
-                icon = Icons.Filled.List,
+                icon = Icons.AutoMirrored.Filled.List,
                 isSelected = isScoresSelected,
                 onClick = onScoresClick,
                 modifier = Modifier.weight(1f)
