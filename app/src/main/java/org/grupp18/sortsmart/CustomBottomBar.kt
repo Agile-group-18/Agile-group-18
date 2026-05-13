@@ -7,18 +7,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,24 +31,36 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val ActiveColor   = Color(0xFF386B21)
+// Color tokens used in the bottom bar
+private val ActiveColor = Color(0xFF386B21)
 private val InactiveColor = Color(0xFF42473D)
-private val BarBackground = Color(0xFFE8E8DE)
+private val BackgroundColor = Color(0xFFE8E8DE)
 
 @Preview(showBackground = true)
 @Composable
 fun BottomBarPreview() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
-        CustomBottomBar(
-            isMapSelected = true,
-            isScoresSelected = false,
-            onMapClick = {},
-            onScoresClick = {},
-            onSearchClick = {}
-        )
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+        // Use boolean-based preview to match existing call sites in MainActivity
+        CompactBottomBarPreview()
     }
 }
 
+@Composable
+private fun CompactBottomBarPreview() {
+    CustomBottomBar(
+        isMapSelected = true,
+        isScoresSelected = false,
+        onMapClick = {},
+        onScoresClick = {},
+        onSearchClick = {}
+    )
+}
+
+/**
+ * Custom bottom bar compatible with existing calls from `MainActivity`.
+ *
+ * Keep the boolean selection API to avoid changing navigation call sites.
+ */
 @Composable
 fun CustomBottomBar(
     isMapSelected: Boolean,
@@ -62,103 +73,92 @@ fun CustomBottomBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(96.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // ── Background bar ──────────────────────────────────────────────────
+        // Background curved bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(90.dp)
-                .shadow(
-                    elevation = 12.dp,
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                )
+                .height(80.dp)
+                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-                .background(BarBackground),
+                .background(BackgroundColor),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Map tab
-            NavBarItem(
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.Map,
-                        contentDescription = "Map",
-                        tint = if (isMapSelected) ActiveColor else InactiveColor,
-                        modifier = Modifier.size(30.dp)
-                    )
-                },
-                label = "Map",
+            // Map item
+            BottomBarItem(
+                title = "Map",
+                icon = Icons.Filled.Place,
                 isSelected = isMapSelected,
                 onClick = onMapClick,
                 modifier = Modifier.weight(1f)
             )
 
-            // Space for the floating center button
-            Spacer(modifier = Modifier.width(72.dp))
+            // Spacer for floating action
+            Spacer(modifier = Modifier.width(80.dp))
 
-            // Scores tab
-            NavBarItem(
-                icon = {
-                    Icon(
-                        imageVector = Icons.Outlined.EmojiEvents,
-                        contentDescription = "Scores",
-                        tint = if (isScoresSelected) ActiveColor else InactiveColor,
-                        modifier = Modifier.size(30.dp)
-                    )
-                },
-                label = "Scores",
+            // Scores item
+            BottomBarItem(
+                title = "Scores",
+                icon = Icons.Filled.List,
                 isSelected = isScoresSelected,
                 onClick = onScoresClick,
                 modifier = Modifier.weight(1f)
             )
         }
 
-        // ── Floating center search/scan button ──────────────────────────────
+        // Floating center action (Home / Search)
         Box(
             modifier = Modifier
-                .align(Alignment.Center)
-                .offset(y=0.dp)
-                .size(62.dp)
-                .shadow(elevation = 10.dp, shape = RoundedCornerShape(18.dp))
-                .clip(RoundedCornerShape(18.dp))
+                .align(Alignment.TopCenter)
+                .size(68.dp)
+                .shadow(elevation = 12.dp, shape = CircleShape)
+                .clip(CircleShape)
                 .background(ActiveColor)
-                .clickable(onClick = onSearchClick),
+                .clickable { onSearchClick() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.Search,
-                contentDescription = "Search",
+                contentDescription = "Search / Home",
                 tint = Color.White,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(30.dp)
             )
         }
     }
 }
 
 @Composable
-private fun NavBarItem(
-    icon: @Composable () -> Unit,
-    label: String,
+private fun BottomBarItem(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val contentColor = if (isSelected) ActiveColor else InactiveColor
+
     Column(
         modifier = modifier
             .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        icon()
-        Spacer(modifier = Modifier.height(3.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = contentColor,
+            modifier = Modifier.size(26.dp)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = label,
-            fontSize = 11.sp,
-            color = if (isSelected) ActiveColor else InactiveColor,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            text = title,
+            fontSize = 12.sp,
+            color = contentColor,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal
         )
     }
 }

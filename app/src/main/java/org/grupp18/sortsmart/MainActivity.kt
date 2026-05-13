@@ -28,7 +28,7 @@ import org.grupp18.sortsmart.ui.navigation.Home
 import org.grupp18.sortsmart.ui.navigation.Map
 import org.grupp18.sortsmart.ui.navigation.Scores
 import org.grupp18.sortsmart.ui.screen.HomeScreen
-import org.grupp18.sortsmart.ui.screen.MapScreen
+import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.screen.ScoresScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
