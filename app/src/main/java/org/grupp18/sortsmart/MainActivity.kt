@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewScreenSizes
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -35,8 +37,13 @@ import org.grupp18.sortsmart.ui.screen.HomeScreen
 import org.grupp18.sortsmart.ui.screen.MapScreen
 import org.grupp18.sortsmart.ui.screen.ScoresScreen
 import org.grupp18.sortsmart.ui.screen.WastebasketSheet
+import androidx.compose.ui.unit.sp
+import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
+/**
+ * The main entry point for the SortSmart application.
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,16 +56,26 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@PreviewScreenSizes
+/**
+ * Defines the primary navigation tabs available in the application.
+ */
+enum class AppDestinations {
+    MAP,
+    HOME,
+    SCORES
+}
+
+/**
+ * The root composable for the application.
+ * Manages top-level state, navigation routing, and the main Scaffold structure.
+ */
 @Composable
 fun SortSmartApp() {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = currentBackStackEntry?.destination
 
-    // memorize this as the state overalys everything!
-    var showWastebasket by remember { mutableStateOf(false) }
-
+    // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0), // this is automaticaly handled via windowInsetsPadding()
@@ -124,13 +141,18 @@ fun SortSmartApp() {
             }
         }
 
-        if (showWastebasket) {
-            WastebasketSheet(
-                onDismiss        = { showWastebasket = false },
-                onAddMoreItems   = { showWastebasket = false /* TODO: navigate to scan */ },
-                onStartRecycling = { showWastebasket = false /* TODO: navigate to map  */ }
-            )
-        }
+// ---------------- PLACEHOLDER SCREENS ----------------
+
+
+/**
+ * A temporary placeholder for the Home screen content.
+ * * @param name The name to display in the greeting.
+ * @param modifier Optional modifier for layout adjustments.
+ */
+@Composable
+fun Greeting(name: String, modifier: Modifier = Modifier.fillMaxSize()) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Text(text = "Hello $name! This is the Home Screen.", fontSize = 20.sp)
     }
 }
 
