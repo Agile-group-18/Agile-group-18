@@ -33,9 +33,9 @@ fun CategoryEntity.toModel(): WasteCategory {
 fun StationMapDto.toMarkerEntity(
     syncedAtMillis: Long
 ): StationMarkerEntity {
-    val safeCategoryStatuses = categoryStatuses ?: emptyList()
+    val safeCategories = categories ?: emptyList()
 
-    val hasProblemReport = safeCategoryStatuses.any { category ->
+    val hasProblemReport = safeCategories.any { category ->
         category.status == "full" || category.status == "not_working"
     }
 
@@ -50,9 +50,9 @@ fun StationMapDto.toMarkerEntity(
 }
 
 fun StationMapDto.toStationCategoryEntities(): List<StationCategoryEntity> {
-    val safeCategoryStatuses = categoryStatuses ?: emptyList()
+    val safeCategories = categories ?: emptyList()
 
-    return safeCategoryStatuses.map { category ->
+    return safeCategories.map { category ->
         StationCategoryEntity(
             stationId = id,
             categoryId = category.id,

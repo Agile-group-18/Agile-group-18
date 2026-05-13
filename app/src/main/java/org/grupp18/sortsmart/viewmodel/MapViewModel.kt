@@ -210,6 +210,7 @@ class MapViewModel(
             }
 
             if (failedReports.isEmpty()) {
+                updateSelectedStationReportLocally(categories)
                 syncStationsFromServer()
                 _errorMessage.value = null
             } else {
