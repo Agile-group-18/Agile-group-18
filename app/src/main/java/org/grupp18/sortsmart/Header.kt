@@ -1,20 +1,16 @@
 package org.grupp18.sortsmart
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,56 +18,64 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 
-// --- Theming & Colors ---
-// Extracted colors for consistency and easier updates
-private val TitleTextColor = Color(0xFF1A1C17)
-private val NotificationBadgeColor = Color(0xFFFA2B35)
-private val PlaceholderColor = Color.LightGray
-private val AvatarPlaceholderColor = Color.Gray
+// Theming & Colors
+private val TitleTextColor          = Color(0xFF1A1C17)
+private val NotificationBadgeColor  = Color(0xFFFA2B35)
+private val PlaceholderColor        = Color.LightGray
+private val ActiveColor             = Color(0xFF386B21)
 
 @Preview(showBackground = true)
 @Composable
 fun HeaderPreview() {
-    Header()
+    Header(
+        currentDestination = AppDestinations.HOME,
+        onNavigate = {},
+        isLoggedIn = false,
+        onLoginClick = {}
+    )
 }
 
 /**
  * The main top app bar (Header) for the application.
- * Contains the branding on the left and user actions on the right.
  *
- * @param modifier Optional modifier for adjusting the layout from the parent.
+ * @param isLoggedIn    Whether the user is logged in — controls avatar vs login button.
+ * @param onLoginClick  Called when the login button is pressed — opens the login dialog.
  */
 @Composable
-fun Header(modifier: Modifier = Modifier) {
+fun Header(
+    currentDestination: AppDestinations,
+    onNavigate: (AppDestinations) -> Unit,
+    isLoggedIn: Boolean = false,
+    onLoginClick: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(96.dp)
             .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceBetween, // Pushes left and right content to the edges
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // --- Left Side ---
         HeaderLogoAndTitle()
-
-        // --- Right Side ---
-        HeaderActions()
+        HeaderActions(
+            isLoggedIn = isLoggedIn,
+            onNavigate = onNavigate,
+            onLoginClick = onLoginClick
+        )
     }
 }
 
-/**
- * Composable for the left side of the header containing the logo and app name.
- */
 @Composable
 private fun HeaderLogoAndTitle() {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        // Placeholder Logo
-        // TODO: Replace with an actual Image composable when the logo is ready
         Box(
             modifier = Modifier
                 .size(38.dp)
@@ -85,9 +89,7 @@ private fun HeaderLogoAndTitle() {
                 tint = Color.DarkGray
             )
         }
-
         Spacer(modifier = Modifier.width(8.dp))
-
         Text(
             text = "Sort Smart",
             fontSize = 20.sp,
@@ -97,24 +99,47 @@ private fun HeaderLogoAndTitle() {
     }
 }
 
-/**
- * Composable for the right side of the header containing user-specific actions.
- */
 @Composable
-private fun HeaderActions() {
+private fun HeaderActions(
+    isLoggedIn: Boolean,
+    onNavigate: (AppDestinations) -> Unit,
+    onLoginClick: () -> Unit
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         NotificationBell(hasUnread = true)
-
         Spacer(modifier = Modifier.width(12.dp))
 
-        ProfileAvatar()
+        if (!isLoggedIn) {
+            Button(
+                onClick = {
+                    onNavigate(AppDestinations.PROFILE)
+                    onLoginClick()
+                },
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ActiveColor,
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(
+                    Icons.Default.Login,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text("Log In", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        ProfileAvatar(
+            imageUrl = "https://i.pravatar.cc/300",
+            onClick = { onNavigate(AppDestinations.PROFILE) }
+        )
     }
 }
 
-/**
- * A notification icon that conditionally displays a red unread badge.
- * * @param hasUnread Boolean dictating whether the red dot should be visible.
- */
 @Composable
 private fun NotificationBell(hasUnread: Boolean) {
     Box(
@@ -126,17 +151,12 @@ private fun NotificationBell(hasUnread: Boolean) {
             contentDescription = "Notifications",
             modifier = Modifier.size(24.dp)
         )
-
-        // The Red Unread Dot
         if (hasUnread) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
-                    .align(Alignment.TopEnd) // Anchors to the top-right of the parent Box
-                    .offset(
-                        x = (-4).dp,
-                        y = 4.dp
-                    ) // Fine-tunes the exact position to sit on the bell
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-4).dp, y = 4.dp)
                     .clip(CircleShape)
                     .background(NotificationBadgeColor)
             )
@@ -144,16 +164,18 @@ private fun NotificationBell(hasUnread: Boolean) {
     }
 }
 
-/**
- * A placeholder for the user's profile picture.
- */
 @Composable
-private fun ProfileAvatar() {
-    // TODO: Replace this Box with an AsyncImage (like Coil) or Image composable later
-    Box(
+private fun ProfileAvatar(
+    imageUrl: String?,
+    onClick: () -> Unit
+) {
+    AsyncImage(
+        model = imageUrl,
+        contentDescription = "Profile Avatar",
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .background(AvatarPlaceholderColor)
+            .clickable { onClick() },
+        contentScale = ContentScale.Crop
     )
 }

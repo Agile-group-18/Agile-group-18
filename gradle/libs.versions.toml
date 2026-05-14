@@ -8,8 +8,9 @@ lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
 
+ksp = "2.0.21-1.0.28"
+
 room = "2.8.4"
-ksp = "2.3.7"
 constraintLayoutCompose = "1.1.1"
 mapsCompose = "8.3.0"
 mapsComposeUtils = "8.3.0"
