@@ -22,7 +22,6 @@ jobs:
 
     - name: Create local.properties
       run: |
-        cp local.properties.example local.properties
         echo "sdk.dir=$ANDROID_SDK_ROOT" >> local.properties
         echo "MAPS_API_KEY=${{ secrets.MAPS_API_KEY }}" >> local.properties
 
