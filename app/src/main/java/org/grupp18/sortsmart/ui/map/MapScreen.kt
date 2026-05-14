@@ -4,11 +4,19 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,15 +25,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -64,32 +84,13 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapEffect
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.MapsComposeExperimentalApi
 import com.google.maps.android.compose.rememberCameraPositionState
 import org.grupp18.sortsmart.R
 import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.WasteCategory
 import org.grupp18.sortsmart.viewmodel.MapViewModel
 import org.grupp18.sortsmart.viewmodel.MapViewModelFactory
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.ElevatedFilterChip
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 
 
 private val PrimaryGreen = Color(0xFF386B21)
@@ -97,7 +98,7 @@ private val DarkText = Color(0xFF1A1C17)
 private val LightText = Color(0xFF42473D)
 private val BadgeRed = Color(0xFFFA2B35)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, MapsComposeExperimentalApi::class)
 @Composable
 fun MapScreen(
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -342,8 +343,6 @@ fun MapScreen(
                 station = station,
                 onReportSent = { reportedCategories ->
                     viewModel.reportStationCategories(
-                        // TODO: replace with real auth token location
-                        accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjMjRhY2JiYS1lYWFhLTQwZmYtYWY3MC1lOWYwYWUxM2FjYjIiLCJ1c2VybmFtZSI6Ik4xc3k1R01hOEdPSkZRY3VnamxvMThKcGVKeDBoWVhqTUZRMnBlLWV6QkQyV05Xc1RQIiwiZXhwIjoxNzc4Nzg2NTE4fQ.dq1p26QoGJaIh8AKvOS7MIipkQfxA5Hggg0JQVPQaA0",
                         stationId = station.id,
                         categories = reportedCategories
                     )
@@ -381,7 +380,11 @@ fun MapScreen(
                         onClick = { viewModel.setProblemOnly(!problemOnly) },
                         label = { Text("Needs attention", fontWeight = FontWeight.Medium) },
                         leadingIcon = {
-                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                         },
                         colors = FilterChipDefaults.elevatedFilterChipColors(
                             containerColor = Color.White,
@@ -400,7 +403,11 @@ fun MapScreen(
                             onClick = { viewModel.toggleCategory(category.id) },
                             label = { Text(category.name, fontWeight = FontWeight.Medium) },
                             leadingIcon = {
-                                if (isSelected) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                if (isSelected) Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             },
                             colors = FilterChipDefaults.elevatedFilterChipColors(
                                 containerColor = Color.White,
@@ -421,7 +428,9 @@ fun MapScreen(
                             viewModel.clearCategoryFilters()
                             viewModel.setProblemOnly(false)
                         },
-                        modifier = Modifier.align(Alignment.End).padding(top = 16.dp)
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(top = 16.dp)
                     ) {
                         Text("Rensa filter", color = PrimaryGreen)
                     }
@@ -861,10 +870,13 @@ private fun MapFilters(
                         }
                     }
                 ) {
-                    Icon(imageVector = Icons.Default.List, contentDescription = "Filter")
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.List,
+                        contentDescription = "Filter"
+                    )
                 }
             } else {
-                Icon(imageVector = Icons.Default.List, contentDescription = "Filter")
+                Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "Filter")
             }
         }
 
@@ -891,7 +903,11 @@ private fun MapFilters(
                         onClick = { onProblemOnlyToggle(!problemOnly) },
                         label = { Text("Needs attention", fontWeight = FontWeight.Medium) },
                         leadingIcon = {
-                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                         },
                         colors = FilterChipDefaults.elevatedFilterChipColors(
                             containerColor = Color.White,
@@ -910,7 +926,11 @@ private fun MapFilters(
                             onClick = { onCategoryToggle(category.id) },
                             label = { Text(category.name, fontWeight = FontWeight.Medium) },
                             leadingIcon = {
-                                if (isSelected) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                                if (isSelected) Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                             },
                             colors = FilterChipDefaults.elevatedFilterChipColors(
                                 containerColor = Color.White,

@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.data.api
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
