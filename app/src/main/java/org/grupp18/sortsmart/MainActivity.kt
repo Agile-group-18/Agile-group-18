@@ -8,17 +8,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
@@ -61,9 +65,19 @@ fun SortSmartApp() {
     val wasteBasket = remember {
         mutableStateListOf<ItemDetail>()
     }
+
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+
+    val scope = rememberCoroutineScope()
+
     // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = {
+            SnackbarHost(snackbarHostState)
+        },
         topBar = {
             Header()
         },
@@ -119,6 +133,13 @@ fun SortSmartApp() {
                         onAddToBasket = { item ->
                             if (!wasteBasket.contains(item)) {
                                 wasteBasket.add(item)
+
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "${item.name} added to basket"
+                                    )
+                                }
+
                             }
                         }
                     )
