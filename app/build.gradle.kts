@@ -11,17 +11,27 @@ android {
     defaultConfig {
         applicationId = "org.grupp18.sortsmart"
         minSdk = 24
-        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile     = file("${rootProject.projectDir}/keystores/debug.keystore")
+            storePassword = "android"
+            keyAlias      = "androiddebugkey"
+            keyPassword   = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
-
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -39,7 +49,7 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }
     }
-
+    useLibrary("org.apache.http.legacy")
     buildFeatures {
         compose = true
     }
@@ -80,6 +90,19 @@ dependencies {
     // --- Image Loading, including SVG support ---
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
+
+
+    // Retrofit & Gson
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp & Logging Interceptor
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    //Integrates ViewModels with Compose UI
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 
     // --- Unit & UI Testing ---
     testImplementation(libs.junit)
