@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.ksp)
 
 }
-
 android {
     namespace = "org.grupp18.sortsmart"
     compileSdk = 37
@@ -53,7 +52,7 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }
     }
-
+    useLibrary("org.apache.http.legacy")
     buildFeatures {
         compose = true
     }
@@ -94,6 +93,19 @@ dependencies {
     // --- Image Loading, including SVG support ---
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
+
+
+    // Retrofit & Gson
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // OkHttp & Logging Interceptor
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    //Integrates ViewModels with Compose UI
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
 
     // --- Unit & UI Testing ---
     testImplementation(libs.junit)

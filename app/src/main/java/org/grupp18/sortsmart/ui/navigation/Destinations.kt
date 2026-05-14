@@ -7,3 +7,5 @@ import kotlinx.serialization.Serializable
 @Serializable object Map
 
 @Serializable object Scores
+
+@Serializable object Profile

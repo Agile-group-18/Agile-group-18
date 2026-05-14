@@ -5,24 +5,28 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import org.grupp18.sortsmart.data.local.dao.StationDao
+import org.grupp18.sortsmart.data.local.dao.TokenDao
 import org.grupp18.sortsmart.data.local.entity.CacheMetadataEntity
 import org.grupp18.sortsmart.data.local.entity.CategoryEntity
 import org.grupp18.sortsmart.data.local.entity.StationCategoryEntity
 import org.grupp18.sortsmart.data.local.entity.StationMarkerEntity
+import org.grupp18.sortsmart.data.local.entity.TokenEntity
 
 @Database(
     entities = [
         CategoryEntity::class,
         StationMarkerEntity::class,
         StationCategoryEntity::class,
-        CacheMetadataEntity::class
+        CacheMetadataEntity::class,
+        TokenEntity::class
     ],
-    version = 1,
+    version = 2, // Bumped from 1 to 2 because we added TokenEntity
     exportSchema = false
 )
 abstract class SortSmartDatabase : RoomDatabase() {
 
     abstract fun stationDao(): StationDao
+    abstract fun tokenDao(): TokenDao
 
     companion object {
         @Volatile
@@ -35,7 +39,7 @@ abstract class SortSmartDatabase : RoomDatabase() {
                     SortSmartDatabase::class.java,
                     "sortsmart.db"
                 )
-                    .fallbackToDestructiveMigration(false)
+                    .fallbackToDestructiveMigration(true) // Wipes db on version change
                     .build()
                     .also { INSTANCE = it }
             }
