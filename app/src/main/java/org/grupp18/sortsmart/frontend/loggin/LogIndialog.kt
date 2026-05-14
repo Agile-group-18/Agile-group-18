@@ -286,7 +286,7 @@ private fun LoginDialogContent(
                     )
                 }
 
-                // Forgot password success banner + token entry button
+                // Forgot password success banner
                 if (authState is AuthState.Success && mode == DialogMode.FORGOT_PASSWORD) {
                     Text(
                         (authState as AuthState.Success).message,
@@ -295,17 +295,16 @@ private fun LoginDialogContent(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     )
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = { switchTo(DialogMode.RESET_PASSWORD) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ActiveColor)
-                    ) {
-                        Text("Enter reset token", fontWeight = FontWeight.Medium)
-                    }
+                    Text(
+                        "Check your email and click the reset link to set a new password.",
+                        fontSize = 12.sp,
+                        color = InactiveColor.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Spacer(Modifier.height(12.dp))
+                    return@Column
                 }
-
                 // Reset password fields
                 if (mode == DialogMode.RESET_PASSWORD) {
                     // Only show token field if it wasn't pre-filled by deep link

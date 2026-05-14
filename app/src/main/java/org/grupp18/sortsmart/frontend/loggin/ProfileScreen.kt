@@ -50,6 +50,11 @@ fun ProfileScreen(
     // Open the dialog automatically if a reset token was passed in from a deep link
     var showLoginDialog by remember { mutableStateOf(resetToken != null) }
 
+    // Try to restore session from database on app start
+    LaunchedEffect(Unit) {
+        authViewModel.tryRestoreSession()
+    }
+
     // Load profile whenever the user logs in
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) profileViewModel.loadProfile()

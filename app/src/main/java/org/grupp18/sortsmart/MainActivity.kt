@@ -1,6 +1,5 @@
 package org.grupp18.sortsmart
 
-import org.grupp18.sortsmart.frontend.loggin.ProfileScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
+import org.grupp18.sortsmart.frontend.loggin.RetrofitClient
+import org.grupp18.sortsmart.frontend.loggin.ProfileScreen
 import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
@@ -37,7 +38,8 @@ class MainActivity : ComponentActivity() {
         // Enables the app content to draw behind the system bars (status bar & navigation bar)
         enableEdgeToEdge()
 
-        // Extract reset token if the app was opened via a password reset deep link
+        // Initialize RetrofitClient with context for database access
+        RetrofitClient.init(this)
         pendingResetToken = intent?.data?.getQueryParameter("token")
 
         setContent {
@@ -45,6 +47,13 @@ class MainActivity : ComponentActivity() {
                 SortSmartApp()
             }
         }
+    }
+
+    // Handle deep link when app is already running
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        pendingResetToken = intent.data?.getQueryParameter("token")
+        recreate()
     }
 }
 
@@ -93,22 +102,31 @@ fun SortSmartApp() {
     ) { innerPadding ->
 
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier = Modifier.fillMaxSize()
         ) {
             when (currentDestination) {
                 AppDestinations.HOME -> {
-                    Greeting(name = "Android")
+                    Greeting(
+                        name = "Android",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
                 }
                 AppDestinations.MAP -> {
-                    MapScreen(modifier = Modifier.fillMaxSize())
+                    MapScreen(
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
                 AppDestinations.SCORES -> {
-                    ScoresScreen()
+                    ScoresScreen(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
                 }
                 AppDestinations.PROFILE -> {
-                    ProfileScreen(resetToken = MainActivity.pendingResetToken)
+                    ProfileScreen(modifier = Modifier.fillMaxSize().padding(innerPadding), resetToken = MainActivity.pendingResetToken)
                 }
             }
         }
