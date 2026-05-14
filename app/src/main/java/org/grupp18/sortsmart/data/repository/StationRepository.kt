@@ -100,7 +100,7 @@ class StationRepository(
     }
 
     suspend fun shouldRefreshStations(
-        maxAgeMillis: Long = 6 * 60 * 60 * 1000L
+        maxAgeMillis: Long = 30 * 60 * 1000L
     ): Boolean {
         val metadata = stationDao.getCacheMetadata(
             CacheMetadataEntity.STATIONS_LAST_SYNC
@@ -116,8 +116,7 @@ class StationRepository(
     ): Result<RecyclingStationDetail> {
         return try {
             val station = RetrofitClient.apiService.getStationDetail(stationId)
-
-            val categoryIds = station.categories.map { it.id }
+            val categoryIds = station.categories?.map { it.id } ?: emptyList()
             val categoryEntities = stationDao.getCategoriesByIds(categoryIds)
 
             Result.success(
