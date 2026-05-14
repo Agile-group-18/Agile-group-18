@@ -1,9 +1,10 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -18,13 +19,15 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,14 +37,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import coil.compose.AsyncImage
+import org.grupp18.sortsmart.ui.theme.SortSmartGreen
+import org.grupp18.sortsmart.ui.theme.SortSmartInk
+import org.grupp18.sortsmart.viewmodel.ProfileViewModel
+import org.grupp18.sortsmart.viewmodel.state.ProfileState
 
-// Theming & Colors
-private val TitleTextColor         = Color(0xFF1A1C17)
+private val TitleTextColor = SortSmartInk
 private val NotificationBadgeColor = Color(0xFFFA2B35)
-private val PlaceholderColor       = Color.LightGray
-private val ActiveColor            = Color(0xFF386B21)
+private val ActiveColor = SortSmartGreen
 
 @Preview(showBackground = true)
 @Composable
@@ -50,20 +57,11 @@ fun HeaderPreview() {
         currentDestination = null,
         onLogoClick = {},
         onProfileClick = {},
-        isLoggedIn = false,
+        isLoggedIn = true,
         onLoginClick = {}
     )
 }
 
-/**
- * The main top app bar (Header) for the application.
- *
- * @param currentDestination Used if you later want to highlight current route.
- * @param onLogoClick       Called when the logo/text is clicked (typically navigates Home).
- * @param onProfileClick    Called when avatar/login navigates to Profile.
- * @param isLoggedIn        Whether the user is logged in — controls avatar vs login hint.
- * @param onLoginClick      Called when the login action should open login dialog.
- */
 @Composable
 fun Header(
     currentDestination: NavDestination?,
@@ -73,6 +71,16 @@ fun Header(
     onLoginClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val profileViewModel: ProfileViewModel = viewModel()
+    val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) profileViewModel.loadProfile()
+    }
+    val displayName = (profileState as? ProfileState.Loaded)?.profile
+        ?.let { it.displayName?.takeIf { n -> n.isNotBlank() } ?: it.username }
+
+    val avatarUrl = (profileState as? ProfileState.Loaded)?.profile?.avatarUrl
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -85,6 +93,8 @@ fun Header(
         HeaderLogoAndTitle(onLogoClick = onLogoClick)
         HeaderActions(
             isLoggedIn = isLoggedIn,
+            username = displayName,
+            avatarUrl = avatarUrl,
             onProfileClick = onProfileClick,
             onLoginClick = onLoginClick
         )
@@ -119,6 +129,8 @@ private fun HeaderLogoAndTitle(onLogoClick: () -> Unit) {
 @Composable
 private fun HeaderActions(
     isLoggedIn: Boolean,
+    username: String?,
+    avatarUrl: String?,
     onProfileClick: () -> Unit,
     onLoginClick: () -> Unit
 ) {
@@ -126,7 +138,13 @@ private fun HeaderActions(
         NotificationBell(hasUnread = true)
         Spacer(modifier = Modifier.width(12.dp))
 
-        if (!isLoggedIn) {
+        if (isLoggedIn) {
+            ProfileAvatar(
+                username = username,
+                avatarUrl = avatarUrl,
+                onClick = onProfileClick
+            )
+        } else {
             Button(
                 onClick = {
                     onProfileClick()
@@ -137,39 +155,23 @@ private fun HeaderActions(
                     containerColor = ActiveColor,
                     contentColor = Color.White
                 ),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = 12.dp,
-                    vertical = 6.dp
-                )
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Login,
+                    imageVector = Icons.AutoMirrored.Filled.Login,
                     contentDescription = "Log in",
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(
-                    text = "Log In",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Log In", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
-            Spacer(modifier = Modifier.width(8.dp))
         }
-
-        ProfileAvatar(
-            imageUrl = "https://i.pravatar.cc/300",
-            onClick = onProfileClick
-        )
     }
 }
 
 @Composable
 private fun NotificationBell(hasUnread: Boolean) {
-    Box(
-        modifier = Modifier.size(36.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
         Icon(
             imageVector = Icons.Filled.Notifications,
             contentDescription = "Notifications",
@@ -191,17 +193,35 @@ private fun NotificationBell(hasUnread: Boolean) {
 
 @Composable
 private fun ProfileAvatar(
-    imageUrl: String?,
+    username: String?,
+    avatarUrl: String?,
     onClick: () -> Unit
 ) {
-    AsyncImage(
-        model = imageUrl,
-        contentDescription = "Profile Avatar",
+    val letter = username?.firstOrNull()?.uppercaseChar()?.toString() ?: "?"
+
+    Box(
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
+            .background(ActiveColor)
             .clickable { onClick() },
-        contentScale = ContentScale.Crop,
-        placeholder = null
-    )
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = letter,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        if (avatarUrl != null) {
+            AsyncImage(
+                model = avatarUrl,
+                contentDescription = "Profile photo",
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
 }

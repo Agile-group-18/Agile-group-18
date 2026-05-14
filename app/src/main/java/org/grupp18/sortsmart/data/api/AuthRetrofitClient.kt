@@ -1,19 +1,21 @@
-package org.grupp18.sortsmart.frontend.loggin
+package org.grupp18.sortsmart.data.api
 
 import android.content.Context
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import org.grupp18.sortsmart.data.api.dto.RefreshRequest
 import org.grupp18.sortsmart.data.local.SortSmartDatabase
 import org.grupp18.sortsmart.data.local.entity.TokenEntity
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 /**
  * Singleton Retrofit client.
- * Access [RetrofitClient.api] anywhere in the app.
+ * Access [AuthRetrofitClient.api] anywhere in the app.
  * Automatically refreshes the access token using the stored refresh token.
  */
-object RetrofitClient {
+object AuthRetrofitClient {
 
     private const val BASE_URL = "https://sortsmart.kleopatra.pro/api/v1/"
 
@@ -21,7 +23,6 @@ object RetrofitClient {
     private var refreshToken: String? = null
     private var appContext: Context? = null
 
-    // Call this once from Application or MainActivity
     fun init(context: Context) {
         appContext = context.applicationContext
     }
@@ -93,7 +94,7 @@ object RetrofitClient {
             // If 401, try to refresh and retry once
             if (response.code == 401 && refreshToken != null) {
                 response.close()
-                val refreshed = kotlinx.coroutines.runBlocking { tryRefresh() }
+                val refreshed = runBlocking { tryRefresh() }
                 if (refreshed) {
                     val retryRequest = originalRequest.newBuilder()
                         .addHeader("Authorization", "Bearer $accessToken")
@@ -101,7 +102,7 @@ object RetrofitClient {
                     chain.proceed(retryRequest)
                 } else {
                     // Refresh failed — clear tokens
-                    kotlinx.coroutines.runBlocking { clearTokens() }
+                    runBlocking { clearTokens() }
                     chain.proceed(originalRequest)
                 }
             } else {
@@ -110,12 +111,12 @@ object RetrofitClient {
         }
         .build()
 
-    val api: ApiService by lazy {
+    val api: AuthApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(httpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(ApiService::class.java)
+            .create(AuthApiService::class.java)
     }
 }

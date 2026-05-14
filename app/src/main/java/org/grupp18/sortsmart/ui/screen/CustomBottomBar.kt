@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,9 +16,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -82,7 +82,10 @@ fun CustomBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(80.dp)
-                .shadow(elevation = 16.dp, shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+                )
                 .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .background(BackgroundColor),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -119,7 +122,7 @@ fun CustomBottomBar(
                 .clip(CircleShape)
                 .background(ActiveColor)
                 .clickable { onSearchClick() },
-                contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -134,7 +137,7 @@ fun CustomBottomBar(
 @Composable
 private fun BottomBarItem(
     title: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
