@@ -4,8 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.secrets.gradle.plugin)
     alias(libs.plugins.ksp)
-
 }
+
 android {
     namespace = "org.grupp18.sortsmart"
     compileSdk = 37
@@ -13,8 +13,8 @@ android {
     defaultConfig {
         applicationId = "org.grupp18.sortsmart"
         minSdk = 24
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "2.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -52,7 +52,9 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
         }
     }
+
     useLibrary("org.apache.http.legacy")
+
     buildFeatures {
         compose = true
     }
@@ -75,6 +77,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.constraintlayout.compose)
 
+    // --- Room ---
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
@@ -94,18 +97,17 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.svg)
 
+    // --- OkHttp & Logging Interceptor (aligned with Retrofit 3) ---
+    implementation(libs.okhttp)
+    implementation(libs.logging.interceptor)
 
-    // Retrofit & Gson
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    // --- Compose ViewModel / Runtime integration ---
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
-    // OkHttp & Logging Interceptor
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-
-    //Integrates ViewModels with Compose UI
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.0")
+    // --- Navigation & Serialization ---
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
 
     // --- Unit & UI Testing ---
     testImplementation(libs.junit)
@@ -117,8 +119,4 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    implementation(libs.androidx.constraintlayout.compose)
-    implementation(libs.androidx.material.icons.extended)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.kotlinx.serialization.json)
 }
