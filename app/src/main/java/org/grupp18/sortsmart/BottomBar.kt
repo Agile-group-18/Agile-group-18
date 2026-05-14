@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -89,10 +90,10 @@ fun CustomBottomBar(
 
             // --- Right Item: Scores ---
             BottomBarItem(
-                title = "Scores",
-                icon = Icons.Default.List,
-                isSelected = currentDestination == AppDestinations.SCORES,
-                onClick = { onNavigate(AppDestinations.SCORES) },
+                title = "Basket",
+                icon = Icons.Default.ShoppingBasket,
+                isSelected = currentDestination == AppDestinations.BASKET,
+                onClick = { onNavigate(AppDestinations.BASKET) },
                 modifier = Modifier.weight(1f)
             )
         }

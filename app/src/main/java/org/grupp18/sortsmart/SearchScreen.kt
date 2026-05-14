@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onAddToBasket: (ItemDetail) -> Unit
 ) {
     var searchText by remember { mutableStateOf("") }
     var suggestions by remember { mutableStateOf<List<SearchItem>>(emptyList()) }
@@ -230,7 +231,7 @@ fun SearchScreen(
 
                     Button(
                         onClick = {
-                            println("${item.name} added to waste basket")
+                            onAddToBasket(item)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(

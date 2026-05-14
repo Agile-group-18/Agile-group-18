@@ -11,7 +11,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,7 +46,7 @@ class MainActivity : ComponentActivity() {
 enum class AppDestinations {
     MAP,
     HOME,
-    SCORES,
+    BASKET,
     SEARCH
 }
 
@@ -56,6 +58,9 @@ enum class AppDestinations {
 fun SortSmartApp() {
     var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
 
+    val wasteBasket = remember {
+        mutableStateListOf<ItemDetail>()
+    }
     // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -91,20 +96,30 @@ fun SortSmartApp() {
                     )
                 }
 
-                AppDestinations.SCORES -> {
-                    ScoresScreen(
+                AppDestinations.BASKET -> {
+                    WasteBasketScreen(
+                        items = wasteBasket,
+                        onDiscard = { item ->
+                            wasteBasket.remove(item)
+                        },
+                        onShowRoute = {
+                            currentDestination = AppDestinations.MAP
+                        },
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(innerPadding)
                     )
                 }
+
                 AppDestinations.SEARCH -> {
                     SearchScreen(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
                         onClose = {
                             currentDestination = AppDestinations.HOME
+                        },
+                        onAddToBasket = { item ->
+                            if (!wasteBasket.contains(item)) {
+                                wasteBasket.add(item)
+                            }
                         }
                     )
                 }
@@ -125,16 +140,5 @@ fun SortSmartApp() {
 fun Greeting(name: String, modifier: Modifier = Modifier.fillMaxSize()) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Text(text = "Hello $name! This is the Home Screen.", fontSize = 20.sp)
-    }
-}
-
-/**
- * A temporary placeholder for the Scores screen content.
- * * @param modifier Optional modifier for layout adjustments.
- */
-@Composable
-fun ScoresScreen(modifier: Modifier = Modifier.fillMaxSize()) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Text(text = "Scores View goes here!", fontSize = 24.sp)
     }
 }
