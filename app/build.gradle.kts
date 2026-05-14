@@ -21,10 +21,10 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile     = file("${rootProject.projectDir}/keystores/debug.keystore")
+            storeFile = file("${rootProject.projectDir}/keystores/debug.keystore")
             storePassword = "android"
-            keyAlias      = "androiddebugkey"
-            keyPassword   = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 
@@ -32,6 +32,7 @@ android {
         debug {
             signingConfig = signingConfigs.getByName("debug")
         }
+
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -61,6 +62,7 @@ android {
 }
 
 dependencies {
+
     // --- Core Android & Lifecycle ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -119,11 +119,11 @@ fun CustomBottomBar(
                 .clip(CircleShape)
                 .background(ActiveColor)
                 .clickable { onSearchClick() },
-            contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = "Search / Home",
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
                 tint = Color.White,
                 modifier = Modifier.size(30.dp)
             )
