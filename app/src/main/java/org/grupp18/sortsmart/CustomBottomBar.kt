@@ -118,8 +118,8 @@ fun CustomBottomBar(
                 .shadow(elevation = 12.dp, shape = CircleShape)
                 .clip(CircleShape)
                 .background(ActiveColor)
-                .clickable { onNavigate(AppDestinations.SEARCH) },
-            contentAlignment = Alignment.Center
+                .clickable { onSearchClick() },
+                contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
