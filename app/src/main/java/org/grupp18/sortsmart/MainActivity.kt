@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.sp
+import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
 /**
