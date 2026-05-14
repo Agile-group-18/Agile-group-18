@@ -43,12 +43,14 @@ fun ProfileScreen(
     authViewModel: AuthViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel(),
     resetToken: String? = null,
+    verifyToken: String? = null,
     triggerLogin: Boolean = false,
     onLoginTriggered: () -> Unit = {}
 ) {
     val isLoggedIn   by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
-
+    var verificationMessage by remember { mutableStateOf<String?>(null) }
+    var showVerifyDialog by remember { mutableStateOf(verifyToken != null) }
     // Open the dialog automatically if a reset token was passed in from a deep link
     var showLoginDialog by remember { mutableStateOf(resetToken != null) }
 
@@ -71,100 +73,149 @@ fun ProfileScreen(
     }
 
     Box(modifier = modifier.background(BackgroundColor)) {
+        Column(modifier = Modifier.fillMaxSize()) {
 
-        when {
-            // Not logged in
-            !isLoggedIn -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        tint = InactiveColor.copy(alpha = 0.4f),
-                        modifier = Modifier.size(96.dp)
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Text(
-                        text = "You're not logged in",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = InactiveColor
-                    )
-                    Text(
-                        text = "Log in to view and manage your profile",
-                        fontSize = 13.sp,
-                        color = InactiveColor.copy(alpha = 0.7f)
-                    )
-                }
 
-                // Log In button
-                Button(
-                    onClick = { showLoginDialog = true },
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 24.dp, bottom = 24.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ActiveColor,
-                        contentColor   = Color.White
-                    ),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+            verificationMessage?.let { msg ->
+                Card(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (msg.contains("Verified")) ActiveColor.copy(alpha = 0.1f) else ErrorColor.copy(alpha = 0.1f)
+                    )
                 ) {
-                    Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text(
+                        text = msg,
+                        modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally),
+                        color = if (msg.contains("Verified")) ActiveColor else ErrorColor,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            // Loading
-            profileState is ProfileState.Loading -> {
-                CircularProgressIndicator(
-                    color = ActiveColor,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
 
-            // Error
-            profileState is ProfileState.Error -> {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = (profileState as ProfileState.Error).message,
-                        color = ErrorColor,
-                        fontSize = 14.sp
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { profileViewModel.loadProfile() },
-                        colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
-                    ) { Text("Retry", color = Color.White) }
-                }
-            }
+            Box(modifier = Modifier.weight(1f)) {
 
-            // Loaded
-            profileState is ProfileState.Loaded -> {
-                val profile = (profileState as ProfileState.Loaded).profile
-                LoggedInProfile(
-                    username = profile.username,
-                    email = profile.email,
-                    joinedDate = profile.createdAt,
-                    onSave = { newUsername, newEmail ->
-                        profileViewModel.updateProfile(newUsername, newEmail)
-                    },
-                    onLogout = { authViewModel.logout() },
-                    onDeleteAccount = {
-                        profileViewModel.deleteProfile { authViewModel.logout() }
+                when {
+                    // Not logged in
+                    !isLoggedIn -> {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = InactiveColor.copy(alpha = 0.4f),
+                                modifier = Modifier.size(96.dp)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text = "You're not logged in",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = InactiveColor
+                            )
+                            Text(
+                                text = "Log in to view and manage your profile",
+                                fontSize = 13.sp,
+                                color = InactiveColor.copy(alpha = 0.7f)
+                            )
+                        }
+
+                        // Log In button
+                        Button(
+                            onClick = { showLoginDialog = true },
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 24.dp, bottom = 24.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ActiveColor,
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Login,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                        }
                     }
-                )
+
+                    // Loading
+                    profileState is ProfileState.Loading -> {
+                        CircularProgressIndicator(
+                            color = ActiveColor,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+
+                    // Error
+                    profileState is ProfileState.Error -> {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = (profileState as ProfileState.Error).message,
+                                color = ErrorColor,
+                                fontSize = 14.sp
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Button(
+                                onClick = { profileViewModel.loadProfile() },
+                                colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
+                            ) { Text("Retry", color = Color.White) }
+                        }
+                    }
+
+                    // Loaded
+                    profileState is ProfileState.Loaded -> {
+                        val profile = (profileState as ProfileState.Loaded).profile
+                        LoggedInProfile(
+                            username = profile.username,
+                            email = profile.email,
+                            joinedDate = profile.createdAt,
+                            onSave = { newUsername, newEmail ->
+                                profileViewModel.updateProfile(newUsername, newEmail)
+                            },
+                            onLogout = { authViewModel.logout() },
+                            onDeleteAccount = {
+                                profileViewModel.deleteProfile { authViewModel.logout() }
+                            }
+                        )
+                    }
+                }
             }
         }
     }
-
+    if (showVerifyDialog && verifyToken != null) {
+        AlertDialog(
+            onDismissRequest = { showVerifyDialog = false },
+            containerColor = BackgroundColor,
+            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = ActiveColor) },
+            title = { Text("Verify Your Account", fontWeight = FontWeight.Bold) },
+            text = { Text("Click below to verify your email address.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        authViewModel.verifyEmail(verifyToken) { success ->
+                            showVerifyDialog = false
+                            verificationMessage = if (success) "Email Verified!" else "Verification Failed"
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
+                ) { Text("Verify Now") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showVerifyDialog = false }) { Text("Later") }
+            }
+        )
+    }
     // Auth dialog — pass reset token so it opens on the correct screen
     if (showLoginDialog) {
         LoginDialog(

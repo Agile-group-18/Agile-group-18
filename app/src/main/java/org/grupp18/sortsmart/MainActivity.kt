@@ -31,6 +31,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         // Stored here so it never triggers recomposition
         var pendingResetToken: String? = null
+        var pendingVerifyToken: String? = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize RetrofitClient with context for database access
         RetrofitClient.init(this)
-        pendingResetToken = intent?.data?.getQueryParameter("token")
+        handleDeepLink(intent)
 
         setContent {
             SortSmartTheme {
@@ -55,6 +56,19 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         pendingResetToken = intent.data?.getQueryParameter("token")
         recreate()
+    }
+    private fun handleDeepLink(intent: android.content.Intent?) {
+        val data = intent?.data
+        val path = data?.path
+        val token = data?.getQueryParameter("token")
+
+        if (path == "/verify-email") {
+            pendingVerifyToken = token
+            pendingResetToken = null
+        } else if (path == "/reset-password") {
+            pendingResetToken = token
+            pendingVerifyToken = null
+        }
     }
 }
 
@@ -77,7 +91,7 @@ fun SortSmartApp() {
     // Start on PROFILE tab if app was opened via reset link, otherwise HOME
     var currentDestination by rememberSaveable {
         mutableStateOf(
-            if (MainActivity.pendingResetToken != null) AppDestinations.PROFILE
+            if (MainActivity.pendingResetToken != null|| MainActivity.pendingVerifyToken != null) AppDestinations.PROFILE
             else AppDestinations.HOME
         )
     }
@@ -140,6 +154,7 @@ fun SortSmartApp() {
                         modifier = Modifier.fillMaxSize().padding(innerPadding),
                         authViewModel = authViewModel,
                         resetToken = MainActivity.pendingResetToken,
+                        verifyToken= MainActivity.pendingVerifyToken,
                         triggerLogin = triggerLoginFromHeader,
                         onLoginTriggered = { triggerLoginFromHeader = false }
                     )

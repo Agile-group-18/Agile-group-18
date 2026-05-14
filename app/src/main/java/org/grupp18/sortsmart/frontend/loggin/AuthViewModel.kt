@@ -148,8 +148,19 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+    fun verifyEmail(token: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.api.verifyEmail(token)
+                onResult(response.isSuccessful)
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
 
     fun resetState() {
         _authState.value = AuthState.Idle
     }
+
 }
