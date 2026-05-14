@@ -70,6 +70,27 @@ import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.WasteCategory
 import org.grupp18.sortsmart.viewmodel.MapViewModel
 import org.grupp18.sortsmart.viewmodel.MapViewModelFactory
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.ElevatedFilterChip
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
+
 
 private val PrimaryGreen = Color(0xFF386B21)
 private val DarkText = Color(0xFF1A1C17)
@@ -79,6 +100,7 @@ private val BadgeRed = Color(0xFFFA2B35)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MapScreen(
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -97,6 +119,11 @@ fun MapScreen(
     val isSyncingMarkers by viewModel.isSyncingMarkers.collectAsState()
     val isLoadingStationDetail by viewModel.isLoadingStationDetail.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val categories by viewModel.categories.collectAsState()
+    val selectedCategoryIds by viewModel.selectedCategoryIds.collectAsState()
+    val problemOnly by viewModel.problemOnly.collectAsState()
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val activeFilterCount = selectedCategoryIds.size + if (problemOnly) 1 else 0
 
     var isLegendExpanded by remember { mutableStateOf(false) }
 
@@ -249,6 +276,20 @@ fun MapScreen(
             }
         }
 
+        MapFilters(
+            categories = categories,
+            selectedCategoryIds = selectedCategoryIds,
+            problemOnly = problemOnly,
+            onCategoryToggle = { viewModel.toggleCategory(it) },
+            onProblemOnlyToggle = { viewModel.setProblemOnly(it) },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(
+                    top = 96.dp + 16.dp,
+                    end = 16.dp
+                )
+        )
+
         MapLegend(
             isExpanded = isLegendExpanded,
             onToggle = { isLegendExpanded = !isLegendExpanded },
@@ -308,6 +349,84 @@ fun MapScreen(
                     )
                 }
             )
+        }
+    }
+
+    if (showFilterSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showFilterSheet = false },
+            containerColor = Color.White
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Filtrera stationer",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkText,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ElevatedFilterChip(
+                        selected = problemOnly,
+                        onClick = { viewModel.setProblemOnly(!problemOnly) },
+                        label = { Text("Needs attention", fontWeight = FontWeight.Medium) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            containerColor = Color.White,
+                            selectedContainerColor = Color(0xFFFA2B35).copy(alpha = 0.15f),
+                            selectedLabelColor = Color(0xFFD32F2F),
+                            selectedLeadingIconColor = Color(0xFFD32F2F)
+                        ),
+                        shape = RoundedCornerShape(50),
+                        border = null
+                    )
+
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryIds.contains(category.id)
+                        ElevatedFilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.toggleCategory(category.id) },
+                            label = { Text(category.name, fontWeight = FontWeight.Medium) },
+                            leadingIcon = {
+                                if (isSelected) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                            },
+                            colors = FilterChipDefaults.elevatedFilterChipColors(
+                                containerColor = Color.White,
+                                selectedContainerColor = Color(0xFF386B21).copy(alpha = 0.15f),
+                                selectedLabelColor = Color(0xFF386B21),
+                                selectedLeadingIconColor = Color(0xFF386B21),
+                                labelColor = DarkText
+                            ),
+                            shape = RoundedCornerShape(50),
+                            border = null
+                        )
+                    }
+                }
+
+                if (activeFilterCount > 0) {
+                    TextButton(
+                        onClick = {
+                            viewModel.clearCategoryFilters()
+                            viewModel.setProblemOnly(false)
+                        },
+                        modifier = Modifier.align(Alignment.End).padding(top = 16.dp)
+                    ) {
+                        Text("Rensa filter", color = PrimaryGreen)
+                    }
+                }
+            }
         }
     }
 }
@@ -704,6 +823,109 @@ private fun ErrorCard(
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun MapFilters(
+    categories: List<WasteCategory>,
+    selectedCategoryIds: Set<Int>,
+    problemOnly: Boolean,
+    onCategoryToggle: (Int) -> Unit,
+    onProblemOnlyToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    val activeFilterCount = selectedCategoryIds.size + if (problemOnly) 1 else 0
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End
+    ) {
+        FloatingActionButton(
+            onClick = { isExpanded = !isExpanded },
+            containerColor = Color.White,
+            contentColor = PrimaryGreen,
+            modifier = Modifier.size(48.dp)
+        ) {
+            if (activeFilterCount > 0) {
+                BadgedBox(
+                    badge = {
+                        Badge(
+                            containerColor = BadgeRed,
+                            contentColor = Color.White
+                        ) {
+                            Text(activeFilterCount.toString())
+                        }
+                    }
+                ) {
+                    Icon(imageVector = Icons.Default.List, contentDescription = "Filter")
+                }
+            } else {
+                Icon(imageVector = Icons.Default.List, contentDescription = "Filter")
+            }
+        }
+
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Top)
+        ) {
+            ElevatedCard(
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .fillMaxWidth(0.85f),
+                colors = CardDefaults.elevatedCardColors(containerColor = Color.White),
+                elevation = CardDefaults.elevatedCardElevation(defaultElevation = 6.dp)
+            ) {
+                FlowRow(
+                    modifier = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    ElevatedFilterChip(
+                        selected = problemOnly,
+                        onClick = { onProblemOnlyToggle(!problemOnly) },
+                        label = { Text("Needs attention", fontWeight = FontWeight.Medium) },
+                        leadingIcon = {
+                            Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                        },
+                        colors = FilterChipDefaults.elevatedFilterChipColors(
+                            containerColor = Color.White,
+                            selectedContainerColor = Color(0xFFFA2B35).copy(alpha = 0.15f),
+                            selectedLabelColor = Color(0xFFD32F2F),
+                            selectedLeadingIconColor = Color(0xFFD32F2F)
+                        ),
+                        shape = RoundedCornerShape(50),
+                        border = null
+                    )
+
+                    categories.forEach { category ->
+                        val isSelected = selectedCategoryIds.contains(category.id)
+                        ElevatedFilterChip(
+                            selected = isSelected,
+                            onClick = { onCategoryToggle(category.id) },
+                            label = { Text(category.name, fontWeight = FontWeight.Medium) },
+                            leadingIcon = {
+                                if (isSelected) Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
+                            },
+                            colors = FilterChipDefaults.elevatedFilterChipColors(
+                                containerColor = Color.White,
+                                selectedContainerColor = Color(0xFF386B21).copy(alpha = 0.15f),
+                                selectedLabelColor = Color(0xFF386B21),
+                                selectedLeadingIconColor = Color(0xFF386B21),
+                                labelColor = DarkText
+                            ),
+                            shape = RoundedCornerShape(50),
+                            border = null
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
