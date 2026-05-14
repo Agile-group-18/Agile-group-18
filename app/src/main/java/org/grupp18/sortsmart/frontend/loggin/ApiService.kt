@@ -113,29 +113,6 @@ interface ApiService {
     @GET("auth/verify-email")
     suspend fun verifyEmail(@Query("token") token: String): Response<MessageResponse>
 
-    // ── Stations ──
-
-    @GET("stations/{station_id}")
-    suspend fun getStation(@Path("station_id") stationId: String): Response<StationResponse>
-
-    @GET("stations/categories")
-    suspend fun getCategories(): Response<CategoryResponse>
-
-    @GET("stations")
-    suspend fun getStations(
-        @Query("lat") lat: Double,
-        @Query("lon") lon: Double,
-        @Query("categories") categories: List<String>? = null,
-        @Query("filter_mode") filterMode: String? = null, // "any" eller "all"
-        @Query("radius") radius: Double? = null
-    ): Response<StationListResponse>
-
-    @POST("stations/{station_id}/report")
-    suspend fun reportStation(
-        @Path("station_id") stationId: String,
-        @Body body: StationReportRequest
-    ): Response<MessageResponse>
-
     // ── Profile ──
 
     @GET("profile")

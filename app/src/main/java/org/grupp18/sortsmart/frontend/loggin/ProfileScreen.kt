@@ -42,13 +42,23 @@ fun ProfileScreen(
     modifier: Modifier = Modifier.fillMaxSize(),
     authViewModel: AuthViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel(),
-    resetToken: String? = null
+    resetToken: String? = null,
+    triggerLogin: Boolean = false,
+    onLoginTriggered: () -> Unit = {}
 ) {
     val isLoggedIn   by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
 
     // Open the dialog automatically if a reset token was passed in from a deep link
     var showLoginDialog by remember { mutableStateOf(resetToken != null) }
+
+    // Open login dialog when triggered from header button
+    LaunchedEffect(triggerLogin) {
+        if (triggerLogin) {
+            showLoginDialog = true
+            onLoginTriggered()
+        }
+    }
 
     // Try to restore session from database on app start
     LaunchedEffect(Unit) {

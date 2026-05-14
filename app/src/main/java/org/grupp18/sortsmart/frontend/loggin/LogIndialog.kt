@@ -307,23 +307,6 @@ private fun LoginDialogContent(
                 }
                 // Reset password fields
                 if (mode == DialogMode.RESET_PASSWORD) {
-                    // Only show token field if it wasn't pre-filled by deep link
-                    if (initialResetToken == null) {
-                        Text(
-                            text = "Open the reset link from your email. Copy the token from the URL after ?token= and paste it below.",
-                            fontSize = 12.sp,
-                            color = InactiveColor.copy(alpha = 0.7f),
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                        )
-                        FormField(
-                            value = resetToken,
-                            onValueChange = { resetToken = it; tokenError = null },
-                            label = "Paste token from URL here",
-                            leadingIcon = { Icon(Icons.Default.Key, null, tint = ActiveColor) },
-                            error = tokenError
-                        )
-                        Spacer(Modifier.height(12.dp))
-                    }
                     FormField(
                         value = newPassword,
                         onValueChange = { newPassword = it; newPasswordError = null },

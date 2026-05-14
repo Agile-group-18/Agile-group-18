@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -81,6 +82,13 @@ fun SortSmartApp() {
         )
     }
 
+    // Shared AuthViewModel so Header and ProfileScreen stay in sync
+    val authViewModel: org.grupp18.sortsmart.frontend.loggin.AuthViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
+
+    // Controls whether the login dialog opens from the header button
+    var triggerLoginFromHeader by rememberSaveable { mutableStateOf(false) }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -88,7 +96,9 @@ fun SortSmartApp() {
                 currentDestination = currentDestination,
                 onNavigate = { newDestination ->
                     currentDestination = newDestination
-                }
+                },
+                isLoggedIn = isLoggedIn,
+                onLoginClick = { triggerLoginFromHeader = true }
             )
         },
         bottomBar = {
@@ -126,7 +136,13 @@ fun SortSmartApp() {
                     )
                 }
                 AppDestinations.PROFILE -> {
-                    ProfileScreen(modifier = Modifier.fillMaxSize().padding(innerPadding), resetToken = MainActivity.pendingResetToken)
+                    ProfileScreen(
+                        modifier = Modifier.fillMaxSize().padding(innerPadding),
+                        authViewModel = authViewModel,
+                        resetToken = MainActivity.pendingResetToken,
+                        triggerLogin = triggerLoginFromHeader,
+                        onLoginTriggered = { triggerLoginFromHeader = false }
+                    )
                 }
             }
         }
