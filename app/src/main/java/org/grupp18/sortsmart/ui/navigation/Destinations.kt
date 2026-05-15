@@ -9,3 +9,5 @@ import kotlinx.serialization.Serializable
 @Serializable object Scores
 
 @Serializable object Profile
+
+@Serializable object Basket
