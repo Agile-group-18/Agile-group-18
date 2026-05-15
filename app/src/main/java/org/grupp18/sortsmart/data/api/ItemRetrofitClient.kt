@@ -5,7 +5,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ItemRetrofitClient {
 
-    const val BASE_URL = "https://sortsmart.kleopatra.pro/"
+    const val BASE_URL = "https://sortsmart.kleopatra.pro/api/v1/"
     val apiService: ItemApiService by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)

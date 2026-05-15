@@ -39,6 +39,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import org.grupp18.sortsmart.data.model.ItemDetail
 import org.grupp18.sortsmart.ui.map.MapScreen
 import org.grupp18.sortsmart.ui.navigation.Basket
 import org.grupp18.sortsmart.ui.navigation.Home
@@ -177,7 +179,7 @@ fun SortSmartApp(initialResetToken: String? = null) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    onClose = { showSearchScreen = false }
+                    onClose = { showSearchScreen = false },
                     onAddToBasket = { item ->
                         if (!wasteBasket.contains(item)) {
                             wasteBasket.add(item)
@@ -189,9 +191,6 @@ fun SortSmartApp(initialResetToken: String? = null) {
                             }
 
                         }
-                    },
-                    onClose = {
-                        showSearchScreen = false
                     }
                 )
             } else {

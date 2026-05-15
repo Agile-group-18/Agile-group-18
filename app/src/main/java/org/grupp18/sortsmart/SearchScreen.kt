@@ -23,6 +23,9 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.grupp18.sortsmart.data.api.ItemRetrofitClient
+import org.grupp18.sortsmart.data.model.ItemDetail
+import org.grupp18.sortsmart.data.model.SearchItem
 
 @Composable
 fun SearchScreen(

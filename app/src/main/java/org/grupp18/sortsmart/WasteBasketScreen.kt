@@ -18,6 +18,7 @@ import coil.ImageLoader
 import coil.compose.AsyncImage
 import coil.decode.SvgDecoder
 import coil.request.ImageRequest
+import org.grupp18.sortsmart.data.model.ItemDetail
 
 @Composable
 fun WasteBasketScreen(
