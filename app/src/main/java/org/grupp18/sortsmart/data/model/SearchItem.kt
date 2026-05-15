@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.data.model
 
 import com.google.gson.annotations.SerializedName
 
@@ -7,6 +7,7 @@ data class ItemSearchResponse(
     val total: Int,
     val results: List<SearchItem>
 )
+
 // Basic information about an item returned from a search
 data class SearchItem(
     val slug: String,

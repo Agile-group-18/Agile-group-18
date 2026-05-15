@@ -1,15 +1,45 @@
-package org.grupp18.sortsmart.frontend.loggin
+package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,14 +50,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.grupp18.sortsmart.viewmodel.AuthViewModel
+import org.grupp18.sortsmart.viewmodel.ProfileViewModel
+import org.grupp18.sortsmart.viewmodel.state.ProfileState
 
 // Theming & Colors
-private val ActiveColor      = Color(0xFF386B21)
-private val BackgroundColor  = Color(0xFFE8E8DE)
-private val InactiveColor    = Color(0xFF42473D)
-private val FieldBgColor     = Color(0xFFF4F4EE)
-private val ErrorColor       = Color(0xFFB00020)
-private val DangerColor      = Color(0xFFB00020)
+private val ActiveColor = Color(0xFF386B21)
+private val BackgroundColor = Color(0xFFE8E8DE)
+private val InactiveColor = Color(0xFF42473D)
+private val FieldBgColor = Color(0xFFF4F4EE)
+private val ErrorColor = Color(0xFFB00020)
+private val DangerColor = Color(0xFFB00020)
 
 /**
  * Profile screen.
@@ -39,14 +72,14 @@ private val DangerColor      = Color(0xFFB00020)
  */
 @Composable
 fun ProfileScreen(
-    modifier: Modifier = Modifier.fillMaxSize(),
+    modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel(),
     resetToken: String? = null,
     triggerLogin: Boolean = false,
     onLoginTriggered: () -> Unit = {}
 ) {
-    val isLoggedIn   by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
 
     // Open the dialog automatically if a reset token was passed in from a deep link
@@ -58,11 +91,6 @@ fun ProfileScreen(
             showLoginDialog = true
             onLoginTriggered()
         }
-    }
-
-    // Try to restore session from database on app start
-    LaunchedEffect(Unit) {
-        authViewModel.tryRestoreSession()
     }
 
     // Load profile whenever the user logs in
@@ -109,11 +137,15 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ActiveColor,
-                        contentColor   = Color.White
+                        contentColor = Color.White
                     ),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
                 ) {
-                    Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Log In", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 }
@@ -187,8 +219,8 @@ private fun LoggedInProfile(
     onDeleteAccount: () -> Unit
 ) {
     var editUsername by remember(username) { mutableStateOf(username) }
-    var editEmail    by remember(email)    { mutableStateOf(email) }
-    var isEditing    by remember { mutableStateOf(false) }
+    var editEmail by remember(email) { mutableStateOf(email) }
+    var isEditing by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -242,16 +274,16 @@ private fun LoggedInProfile(
             singleLine = true,
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor        = InactiveColor,
-                unfocusedTextColor      = InactiveColor,
-                disabledTextColor       = InactiveColor,
-                focusedBorderColor      = ActiveColor,
-                unfocusedBorderColor    = InactiveColor,
-                disabledBorderColor     = InactiveColor.copy(alpha = 0.4f),
-                focusedContainerColor   = FieldBgColor,
+                focusedTextColor = InactiveColor,
+                unfocusedTextColor = InactiveColor,
+                disabledTextColor = InactiveColor,
+                focusedBorderColor = ActiveColor,
+                unfocusedBorderColor = InactiveColor,
+                disabledBorderColor = InactiveColor.copy(alpha = 0.4f),
+                focusedContainerColor = FieldBgColor,
                 unfocusedContainerColor = FieldBgColor,
-                disabledContainerColor  = FieldBgColor,
-                cursorColor             = ActiveColor
+                disabledContainerColor = FieldBgColor,
+                cursorColor = ActiveColor
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -268,16 +300,16 @@ private fun LoggedInProfile(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor        = InactiveColor,
-                unfocusedTextColor      = InactiveColor,
-                disabledTextColor       = InactiveColor,
-                focusedBorderColor      = ActiveColor,
-                unfocusedBorderColor    = InactiveColor,
-                disabledBorderColor     = InactiveColor.copy(alpha = 0.4f),
-                focusedContainerColor   = FieldBgColor,
+                focusedTextColor = InactiveColor,
+                unfocusedTextColor = InactiveColor,
+                disabledTextColor = InactiveColor,
+                focusedBorderColor = ActiveColor,
+                unfocusedBorderColor = InactiveColor,
+                disabledBorderColor = InactiveColor.copy(alpha = 0.4f),
+                focusedContainerColor = FieldBgColor,
                 unfocusedContainerColor = FieldBgColor,
-                disabledContainerColor  = FieldBgColor,
-                cursorColor             = ActiveColor
+                disabledContainerColor = FieldBgColor,
+                cursorColor = ActiveColor
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -286,7 +318,10 @@ private fun LoggedInProfile(
 
         // Action buttons
         if (isEditing) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 OutlinedButton(
                     onClick = { editUsername = username; editEmail = email; isEditing = false },
                     modifier = Modifier.weight(1f),
@@ -300,18 +335,20 @@ private fun LoggedInProfile(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = ActiveColor,
-                        contentColor   = Color.White
+                        contentColor = Color.White
                     )
                 ) { Text("Save", fontWeight = FontWeight.SemiBold) }
             }
         } else {
             Button(
                 onClick = { isEditing = true },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = ActiveColor,
-                    contentColor   = Color.White
+                    contentColor = Color.White
                 )
             ) {
                 Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp))
@@ -325,11 +362,13 @@ private fun LoggedInProfile(
         // Log out
         OutlinedButton(
             onClick = onLogout,
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = InactiveColor)
         ) {
-            Icon(Icons.Default.Logout, null, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text("Log Out", fontWeight = FontWeight.Medium)
         }
