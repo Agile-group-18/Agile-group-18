@@ -4,37 +4,57 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.EaseOutQuart
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import org.grupp18.sortsmart.frontend.loggin.AuthViewModel
+import org.grupp18.sortsmart.frontend.loggin.ProfileScreen
+import org.grupp18.sortsmart.frontend.loggin.RetrofitClient
 import org.grupp18.sortsmart.ui.map.MapScreen
+import org.grupp18.sortsmart.ui.navigation.Home
+import org.grupp18.sortsmart.ui.navigation.Map
+import org.grupp18.sortsmart.ui.navigation.Profile
+import org.grupp18.sortsmart.ui.navigation.Scores
+import org.grupp18.sortsmart.ui.screen.HomeScreen
+import org.grupp18.sortsmart.ui.screen.ScoresScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 
-/**
- * The main entry point for the Sort Smart application.
- */
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        var pendingResetToken: String? = null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Enables the app content to draw behind the system bars (status bar & navigation bar)
         enableEdgeToEdge()
+
+        RetrofitClient.init(this)
+
+        pendingResetToken = intent?.data?.getQueryParameter("token")
 
         setContent {
             SortSmartTheme {
@@ -42,124 +62,151 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        pendingResetToken = intent.data?.getQueryParameter("token")
+        recreate()
+    }
 }
 
-/**
- * Defines the primary navigation tabs available in the application.
- */
 enum class AppDestinations {
     MAP,
     HOME,
-    BASKET,
-    SEARCH
+    SCORES,
+    SEARCH,
+    PROFILE
 }
 
-/**
- * The root composable for the application.
- * Manages top-level state, navigation routing, and the main Scaffold structure.
- */
 @Composable
 fun SortSmartApp() {
-    var currentDestination by rememberSaveable { mutableStateOf(AppDestinations.HOME) }
+    val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination: NavDestination? = currentBackStackEntry?.destination
 
-    val wasteBasket = remember {
-        mutableStateListOf<ItemDetail>()
-    }
+    val authViewModel: AuthViewModel = viewModel()
+    val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
 
-    val snackbarHostState = remember {
-        SnackbarHostState()
-    }
+    var triggerLoginFromHeader by rememberSaveable { mutableStateOf(false) }
+    var showSearchScreen by rememberSaveable { mutableStateOf(false) }
 
-    val scope = rememberCoroutineScope()
-
-    // Removed NavigationSuiteScaffold because you have a custom BottomBar now!
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        snackbarHost = {
-            SnackbarHost(snackbarHostState)
-        },
+        contentWindowInsets = WindowInsets(0),
         topBar = {
-            Header()
+            Header(
+                currentDestination = currentDestination,
+                onLogoClick = {
+                    showSearchScreen = false
+                    navController.navigate(Home) {
+                        popUpTo<Home> { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+                onProfileClick = {
+                    showSearchScreen = false
+                    navController.navigate(Profile) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                isLoggedIn = isLoggedIn,
+                onLoginClick = { triggerLoginFromHeader = true }
+            )
         },
         bottomBar = {
             CustomBottomBar(
-                currentDestination = currentDestination,
-                onNavigate = { newDestination ->
-                    currentDestination = newDestination
+                isMapSelected = !showSearchScreen &&
+                        currentDestination?.hierarchy?.any { it.hasRoute(Map::class) } == true,
+                isScoresSelected = !showSearchScreen &&
+                        currentDestination?.hierarchy?.any { it.hasRoute(Scores::class) } == true,
+                onMapClick = {
+                    showSearchScreen = false
+                    navigateToTopLevel(navController, Map)
+                },
+                onScoresClick = {
+                    showSearchScreen = false
+                    navigateToTopLevel(navController, Scores)
+                },
+                onSearchClick = {
+                    showSearchScreen = true
                 }
             )
         }
     ) { innerPadding ->
-
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.padding(
+                top = innerPadding.calculateTopPadding()
+            )
         ) {
-            when (currentDestination) {
-                AppDestinations.HOME -> {
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    )
-                }
-
-                AppDestinations.MAP -> {
-                    MapScreen(
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                AppDestinations.BASKET -> {
-                    WasteBasketScreen(
-                        items = wasteBasket,
-                        onDiscard = { item ->
-                            wasteBasket.remove(item)
-                        },
-                        onShowRoute = {
-                            currentDestination = AppDestinations.MAP
-                        },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    )
-                }
-
-                AppDestinations.SEARCH -> {
-                    SearchScreen(
-                        onClose = {
-                            currentDestination = AppDestinations.HOME
-                        },
-                        onAddToBasket = { item ->
-                            if (!wasteBasket.contains(item)) {
-                                wasteBasket.add(item)
-
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "${item.name} added to basket"
-                                    )
-                                }
-
-                            }
-                        }
-                    )
+            if (showSearchScreen) {
+                SearchScreen(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    onClose = {
+                        showSearchScreen = false
+                    }
+                )
+            } else {
+                NavHost(
+                    navController = navController,
+                    startDestination = if (MainActivity.pendingResetToken != null) Profile else Home,
+                    modifier = Modifier.fillMaxSize(),
+                    enterTransition = {
+                        slideInHorizontally(
+                            animationSpec = tween(300, easing = EaseOutQuart),
+                            initialOffsetX = { it }
+                        )
+                    },
+                    exitTransition = {
+                        slideOutHorizontally(
+                            animationSpec = tween(300, easing = EaseOutQuart),
+                            targetOffsetX = { -it / 3 }
+                        )
+                    },
+                    popEnterTransition = {
+                        slideInHorizontally(
+                            animationSpec = tween(300, easing = EaseOutQuart),
+                            initialOffsetX = { -it / 3 }
+                        )
+                    },
+                    popExitTransition = {
+                        slideOutHorizontally(
+                            animationSpec = tween(300, easing = EaseOutQuart),
+                            targetOffsetX = { it }
+                        )
+                    }
+                ) {
+                    composable<Home> { HomeScreen() }
+                    composable<Map> { MapScreen() }
+                    composable<Scores> { ScoresScreen() }
+                    composable<Profile> {
+                        ProfileScreen(
+                            authViewModel = authViewModel,
+                            resetToken = MainActivity.pendingResetToken,
+                            triggerLogin = triggerLoginFromHeader,
+                            onLoginTriggered = { triggerLoginFromHeader = false }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// ---------------- PLACEHOLDER SCREENS ----------------
-
-
-/**
- * A temporary placeholder for the Home screen content.
- * * @param name The name to display in the greeting.
- * @param modifier Optional modifier for layout adjustments.
- */
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier.fillMaxSize()) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Text(text = "Hello $name! This is the Home Screen.", fontSize = 20.sp)
+private fun navigateToTopLevel(
+    navController: NavHostController,
+    route: Any
+) {
+    navController.navigate(route) {
+        popUpTo(navController.graph.findStartDestination().id) {
+            saveState = true
+        }
+        launchSingleTop = true
+        restoreState = true
     }
 }
