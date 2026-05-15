@@ -24,6 +24,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +37,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import org.grupp18.sortsmart.viewmodel.ProfileViewModel
+import org.grupp18.sortsmart.viewmodel.state.ProfileState
 
 // ── Brand colors ────────────────────────────────────────────────────────────
 private val GreenDark = Color(0xFF2D5A1B)   // impact card background
@@ -55,8 +61,19 @@ fun HomeScreenPreview() {
 
 @Composable
 fun HomeScreen(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoggedIn: Boolean = false
 ) {
+    val profileViewModel: ProfileViewModel = viewModel()
+    val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isLoggedIn) {
+        if (isLoggedIn) profileViewModel.loadProfile()
+    }
+
+    val displayName = (profileState as? ProfileState.Loaded)?.profile
+        ?.let { it.displayName?.takeIf { n -> n.isNotBlank() } ?: it.username }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -67,7 +84,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Hi, Anon",
+            text = "Hi, ${displayName ?: "there"}!",
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1A1C18),

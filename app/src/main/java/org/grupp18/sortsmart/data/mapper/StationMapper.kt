@@ -33,6 +33,7 @@ fun CategoryEntity.toModel(): WasteCategory {
 fun StationMapDto.toMarkerEntity(
     syncedAtMillis: Long
 ): StationMarkerEntity {
+    // Gson doesnt respect Kotlin's default values when deserializing, so categories can be null if the field is missing in the JSON.
     val safeCategories = categories ?: emptyList()
 
     val hasProblemReport = safeCategories.any { category ->
@@ -50,6 +51,7 @@ fun StationMapDto.toMarkerEntity(
 }
 
 fun StationMapDto.toStationCategoryEntities(): List<StationCategoryEntity> {
+    // Gson doesnt respect Kotlin's default values when deserializing, so categories can be null if the field is missing in the JSON.
     val safeCategories = categories ?: emptyList()
 
     return safeCategories.map { category ->
@@ -75,6 +77,7 @@ fun StationDetailDto.toModel(
 ): RecyclingStationDetail {
     val categoriesById = categoryEntities.associateBy { it.id }
 
+    // Gson doesnt respect Kotlin's default values when deserializing, so categories can be null if the field is missing in the JSON.
     val safeCategories = categories ?: emptyList()
     val safeCategoryStatuses = categoryStatuses ?: emptyList()
 

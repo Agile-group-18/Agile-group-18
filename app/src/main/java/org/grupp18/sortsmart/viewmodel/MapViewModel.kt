@@ -186,7 +186,6 @@ class MapViewModel(
     }
 
     fun reportStationCategories(
-        accessToken: String,
         stationId: String,
         categories: List<WasteCategory>,
         status: String = "full",
@@ -197,7 +196,6 @@ class MapViewModel(
 
             categories.forEach { category ->
                 val result = repository.reportStationCategory(
-                    accessToken = accessToken,
                     stationId = stationId,
                     categoryId = category.id,
                     status = status,
