@@ -100,7 +100,7 @@ fun SearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -143,6 +143,21 @@ fun SearchScreen(
                 text = "Error: $it",
                 color = MaterialTheme.colorScheme.error
             )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (
+            searchText.isNotBlank() &&
+            suggestions.isEmpty() &&
+            selectedItem == null &&
+            errorMessage == null
+        ) {
+            Text(
+                "No matching products found. Try another spelling or a more general word.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
         }
 
