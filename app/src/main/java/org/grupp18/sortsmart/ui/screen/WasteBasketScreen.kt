@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

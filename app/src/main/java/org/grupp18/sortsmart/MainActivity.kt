@@ -53,6 +53,7 @@ import org.grupp18.sortsmart.ui.screen.HomeScreen
 import org.grupp18.sortsmart.ui.screen.ProfileScreen
 import org.grupp18.sortsmart.ui.screen.ScoresScreen
 import org.grupp18.sortsmart.ui.screen.SearchScreen
+import org.grupp18.sortsmart.ui.screen.WasteBasketScreen
 import org.grupp18.sortsmart.ui.theme.SortSmartBg
 import org.grupp18.sortsmart.ui.theme.SortSmartGreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
@@ -225,19 +226,21 @@ fun SortSmartApp(initialResetToken: String? = null) {
                 ) {
                     composable<Home> { HomeScreen(isLoggedIn = isLoggedIn) }
                     composable<Map> { MapScreen() }
-                    composable<Basket> { WasteBasketScreen(
-                        items = wasteBasket,
-                        onDiscard = { item ->
-                            wasteBasket.remove(item)
-                        },
-                        onShowRoute = {
-                            showSearchScreen = false
-                            navigateToTopLevel(navController, Map)
-                        },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding)
-                    ) }
+                    composable<Basket> {
+                        WasteBasketScreen(
+                            items = wasteBasket,
+                            onDiscard = { item ->
+                                wasteBasket.remove(item)
+                            },
+                            onShowRoute = {
+                                showSearchScreen = false
+                                navigateToTopLevel(navController, Map)
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding)
+                        )
+                    }
                     composable<Scores> { ScoresScreen() }
                     composable<Profile> {
                         ProfileScreen(

@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart
+package org.grupp18.sortsmart.ui.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
