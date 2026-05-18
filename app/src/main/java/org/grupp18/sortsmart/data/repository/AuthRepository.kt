@@ -37,4 +37,6 @@ class AuthRepository {
     suspend fun loadSavedSession() = AuthRetrofitClient.loadTokensFromDb()
 
     suspend fun clearTokens() = AuthRetrofitClient.clearTokens()
+
+    suspend fun verifyEmail(token: String) = api.verifyEmail(token)
 }

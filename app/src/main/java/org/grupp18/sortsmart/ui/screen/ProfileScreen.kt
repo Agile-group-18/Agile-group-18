@@ -24,6 +24,9 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,12 +79,15 @@ fun ProfileScreen(
     authViewModel: AuthViewModel = viewModel(),
     profileViewModel: ProfileViewModel = viewModel(),
     resetToken: String? = null,
+    verifyToken: String? = null,
     triggerLogin: Boolean = false,
     onLoginTriggered: () -> Unit = {}
 ) {
     val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
 
+    var verificationMessage by remember { mutableStateOf<String?>(null) }
+    var showVerifyDialog by remember { mutableStateOf(verifyToken != null) }
     // Open the dialog automatically if a reset token was passed in from a deep link
     var showLoginDialog by remember { mutableStateOf(resetToken != null) }
 
@@ -99,7 +105,21 @@ fun ProfileScreen(
     }
 
     Box(modifier = modifier.background(BackgroundColor)) {
-
+        verificationMessage?.let { msg ->
+            Card(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (msg.contains("Verified")) ActiveColor.copy(alpha = 0.1f) else ErrorColor.copy(alpha = 0.1f)
+                )
+            ) {
+                Text(
+                    text = msg,
+                    modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally),
+                    color = if (msg.contains("Verified")) ActiveColor else ErrorColor,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
         when {
             // Not logged in
             !isLoggedIn -> {
@@ -197,6 +217,38 @@ fun ProfileScreen(
         }
     }
 
+    if (showVerifyDialog && verifyToken != null) {
+        AlertDialog(
+            onDismissRequest = { showVerifyDialog = false },
+            containerColor = BackgroundColor,
+            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = ActiveColor) },
+            title = { Text("Verify Your Account", fontWeight = FontWeight.Bold) },
+            text = { Text("Click below to verify your email address.") },
+            confirmButton = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Button(
+                        onClick = {
+                            authViewModel.verifyEmail(verifyToken) { statusCode ->
+                                showVerifyDialog = false
+                                if (statusCode == 200 || statusCode == 400) {
+                                    verificationMessage = "Email Verified!"
+                                    profileViewModel.loadProfile()
+                                } else {
+                                    verificationMessage = "Verification Failed (Error: $statusCode)"
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
+                    ) {
+                        Text("Verify Now")
+                    }
+                }
+            }
+        )
+    }
     // Auth dialog — pass reset token so it opens on the correct screen
     if (showLoginDialog) {
         LoginDialog(
