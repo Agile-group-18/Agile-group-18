@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import org.grupp18.sortsmart.data.api.ItemRetrofitClient
 import org.grupp18.sortsmart.data.model.ItemDetail
 import org.grupp18.sortsmart.data.model.SearchItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 fun SearchScreen(
@@ -38,6 +40,7 @@ fun SearchScreen(
     var selectedItem by remember { mutableStateOf<ItemDetail?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showSuggestions by remember { mutableStateOf(false) }
+    var hasSubmittedSearch by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -109,9 +112,9 @@ fun SearchScreen(
             OutlinedTextField(
                 value = searchText,
                 onValueChange = {
+                    hasSubmittedSearch = false
                     searchText = it
                     selectedItem = null
-                    showSuggestions = true
                 },
                 placeholder = { Text("What do you want to recycle?") },
                 modifier = Modifier.weight(1f),
@@ -121,8 +124,10 @@ fun SearchScreen(
                 ),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        if (suggestions.isNotEmpty()) {
-                            selectItem(suggestions.first())
+                        hasSubmittedSearch = true
+
+                        suggestions.firstOrNull()?.let {
+                            selectItem(it)
                         }
                     }
                 )
@@ -147,6 +152,7 @@ fun SearchScreen(
         }
 
         if (
+            hasSubmittedSearch &&
             searchText.isNotBlank() &&
             suggestions.isEmpty() &&
             selectedItem == null &&
