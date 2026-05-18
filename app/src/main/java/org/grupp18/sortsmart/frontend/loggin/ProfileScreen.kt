@@ -203,13 +203,20 @@ fun ProfileScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        authViewModel.verifyEmail(verifyToken) { success ->
+                        authViewModel.verifyEmail(verifyToken) { statusCode ->
                             showVerifyDialog = false
-                            verificationMessage = if (success) "Email Verified!" else "Verification Failed"
+                            if (statusCode == 200 || statusCode == 400) {
+                                verificationMessage = "Email Verified!"
+                                profileViewModel.loadProfile()
+                            } else {
+                                verificationMessage = "Verification Failed (Error: $statusCode)"
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
-                ) { Text("Verify Now") }
+                ) {
+                    Text("Verify Now")
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showVerifyDialog = false }) { Text("Later") }

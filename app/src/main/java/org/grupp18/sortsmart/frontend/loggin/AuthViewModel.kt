@@ -148,13 +148,13 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-    fun verifyEmail(token: String, onResult: (Boolean) -> Unit) {
+    fun verifyEmail(token: String, onResult: (Int) -> Unit) {
         viewModelScope.launch {
             try {
                 val response = RetrofitClient.api.verifyEmail(token)
-                onResult(response.isSuccessful)
+                onResult(response.code())
             } catch (e: Exception) {
-                onResult(false)
+                onResult(-1)
             }
         }
     }
