@@ -26,6 +26,8 @@ import kotlinx.coroutines.launch
 import org.grupp18.sortsmart.data.api.ItemRetrofitClient
 import org.grupp18.sortsmart.data.model.ItemDetail
 import org.grupp18.sortsmart.data.model.SearchItem
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 @Composable
 fun SearchScreen(
@@ -38,6 +40,7 @@ fun SearchScreen(
     var selectedItem by remember { mutableStateOf<ItemDetail?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showSuggestions by remember { mutableStateOf(false) }
+    var hasSubmittedSearch by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -100,7 +103,7 @@ fun SearchScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -109,9 +112,9 @@ fun SearchScreen(
             OutlinedTextField(
                 value = searchText,
                 onValueChange = {
+                    hasSubmittedSearch = false
                     searchText = it
                     selectedItem = null
-                    showSuggestions = true
                 },
                 placeholder = { Text("What do you want to recycle?") },
                 modifier = Modifier.weight(1f),
@@ -121,8 +124,10 @@ fun SearchScreen(
                 ),
                 keyboardActions = KeyboardActions(
                     onSearch = {
-                        if (suggestions.isNotEmpty()) {
-                            selectItem(suggestions.first())
+                        hasSubmittedSearch = true
+
+                        suggestions.firstOrNull()?.let {
+                            selectItem(it)
                         }
                     }
                 )
@@ -143,6 +148,22 @@ fun SearchScreen(
                 text = "Error: $it",
                 color = MaterialTheme.colorScheme.error
             )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (
+            hasSubmittedSearch &&
+            searchText.isNotBlank() &&
+            suggestions.isEmpty() &&
+            selectedItem == null &&
+            errorMessage == null
+        ) {
+            Text(
+                "No matching products found. Try another spelling or a more general word.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             Spacer(modifier = Modifier.height(12.dp))
         }
 
