@@ -15,10 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,7 +39,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import org.grupp18.sortsmart.data.model.ItemDetail
 import org.grupp18.sortsmart.ui.map.MapScreen
+import org.grupp18.sortsmart.ui.navigation.Basket
 import org.grupp18.sortsmart.ui.navigation.Home
 import org.grupp18.sortsmart.ui.navigation.Map
 import org.grupp18.sortsmart.ui.navigation.Profile
@@ -102,9 +110,21 @@ fun SortSmartApp(initialResetToken: String? = null) {
     var triggerLoginFromHeader by rememberSaveable { mutableStateOf(false) }
     var showSearchScreen by rememberSaveable { mutableStateOf(false) }
 
+    val wasteBasket = remember {
+        mutableStateListOf<ItemDetail>()
+    }
+    val snackbarHostState = remember {
+        SnackbarHostState()
+    }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         contentWindowInsets = WindowInsets(0),
+
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             Header(
                 currentDestination = currentDestination,
@@ -133,11 +153,17 @@ fun SortSmartApp(initialResetToken: String? = null) {
             CustomBottomBar(
                 isMapSelected = !showSearchScreen &&
                         currentDestination?.hierarchy?.any { it.hasRoute(Map::class) } == true,
+                isBasketSelected = !showSearchScreen &&
+                        currentDestination?.hierarchy?.any { it.hasRoute(Basket::class) } == true,
                 isScoresSelected = !showSearchScreen &&
                         currentDestination?.hierarchy?.any { it.hasRoute(Scores::class) } == true,
                 onMapClick = {
                     showSearchScreen = false
                     navigateToTopLevel(navController, Map)
+                },
+                onBasketClick = {
+                    showSearchScreen = false
+                    navigateToTopLevel(navController, Basket)
                 },
                 onScoresClick = {
                     showSearchScreen = false
@@ -153,7 +179,19 @@ fun SortSmartApp(initialResetToken: String? = null) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    onClose = { showSearchScreen = false }
+                    onClose = { showSearchScreen = false },
+                    onAddToBasket = { item ->
+                        if (!wasteBasket.contains(item)) {
+                            wasteBasket.add(item)
+
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    "${item.name} added to basket"
+                                )
+                            }
+
+                        }
+                    }
                 )
             } else {
                 NavHost(
@@ -187,6 +225,19 @@ fun SortSmartApp(initialResetToken: String? = null) {
                 ) {
                     composable<Home> { HomeScreen(isLoggedIn = isLoggedIn) }
                     composable<Map> { MapScreen() }
+                    composable<Basket> { WasteBasketScreen(
+                        items = wasteBasket,
+                        onDiscard = { item ->
+                            wasteBasket.remove(item)
+                        },
+                        onShowRoute = {
+                            showSearchScreen = false
+                            navigateToTopLevel(navController, Map)
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) }
                     composable<Scores> { ScoresScreen() }
                     composable<Profile> {
                         ProfileScreen(

@@ -11,5 +11,7 @@ object Map
 @Serializable
 object Scores
 
+@Serializable object Basket
+
 @Serializable
 object Profile

@@ -78,10 +78,12 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.constraintlayout.compose)
+    implementation(libs.androidx.material3)
 
     // --- Room ---
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.volley)
     ksp(libs.androidx.room.compiler)
 
     // --- Google Maps & Location Services ---

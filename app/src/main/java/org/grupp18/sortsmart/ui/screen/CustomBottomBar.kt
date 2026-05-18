@@ -18,6 +18,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,8 +52,10 @@ fun BottomBarPreview() {
 private fun CompactBottomBarPreview() {
     CustomBottomBar(
         isMapSelected = true,
+        isBasketSelected = false,
         isScoresSelected = false,
         onMapClick = {},
+        onBasketClick = {},
         onScoresClick = {},
         onSearchClick = {}
     )
@@ -65,8 +69,10 @@ private fun CompactBottomBarPreview() {
 @Composable
 fun CustomBottomBar(
     isMapSelected: Boolean,
+    isBasketSelected: Boolean,
     isScoresSelected: Boolean,
     onMapClick: () -> Unit,
+    onBasketClick: () -> Unit,
     onScoresClick: () -> Unit,
     onSearchClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -105,10 +111,10 @@ fun CustomBottomBar(
 
             // Scores item
             BottomBarItem(
-                title = "Scores",
-                icon = Icons.AutoMirrored.Filled.List,
-                isSelected = isScoresSelected,
-                onClick = onScoresClick,
+                title = "Basket",
+                icon = Icons.Default.ShoppingBasket,
+                isSelected = isBasketSelected,
+                onClick = onBasketClick,
                 modifier = Modifier.weight(1f)
             )
         }
