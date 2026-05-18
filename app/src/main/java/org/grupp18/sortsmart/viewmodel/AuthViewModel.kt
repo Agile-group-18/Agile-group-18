@@ -89,6 +89,16 @@ class AuthViewModel : ViewModel() {
             else -> AuthState.Error("Reset failed: ${response.code()}")
         }
     }
+    fun verifyEmail(token: String, onResult: (Int) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = repository.verifyEmail(token)
+                onResult(response.code())
+            } catch (e: Exception) {
+                onResult(-1)
+            }
+        }
+    }
 
     fun resetState() {
         _authState.value = AuthState.Idle

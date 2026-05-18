@@ -60,16 +60,20 @@ import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 import org.grupp18.sortsmart.viewmodel.AuthViewModel
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        var pendingResetToken: String? = null
+        var pendingVerifyToken: String? = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val resetToken = intent?.data?.getQueryParameter("token")
 
+        handleDeepLink(intent)
         setContent {
             SortSmartTheme {
-                SortSmartApp(initialResetToken = resetToken)
+                SortSmartApp(initialResetToken = pendingResetToken, initialVerifyToken = pendingVerifyToken)
             }
         }
     }
@@ -79,10 +83,23 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         recreate()
     }
+    private fun handleDeepLink(intent: android.content.Intent?) {
+        val data = intent?.data
+        val path = data?.path
+        val token = data?.getQueryParameter("token")
+
+        if (path == "/verify-email") {
+            pendingVerifyToken = token
+            pendingResetToken = null
+        } else if (path == "/reset-password") {
+            pendingResetToken = token
+            pendingVerifyToken = null
+        }
+    }
 }
 
 @Composable
-fun SortSmartApp(initialResetToken: String? = null) {
+fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? = null) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination: NavDestination? = currentBackStackEntry?.destination
@@ -197,7 +214,7 @@ fun SortSmartApp(initialResetToken: String? = null) {
             } else {
                 NavHost(
                     navController = navController,
-                    startDestination = if (initialResetToken != null) Profile else Home,
+                    startDestination = if (initialResetToken != null || initialVerifyToken != null) Profile else Home,
                     modifier = Modifier.fillMaxSize(),
                     enterTransition = {
                         slideInHorizontally(
@@ -246,6 +263,7 @@ fun SortSmartApp(initialResetToken: String? = null) {
                         ProfileScreen(
                             authViewModel = authViewModel,
                             resetToken = initialResetToken,
+                            verifyToken = initialVerifyToken,
                             triggerLogin = triggerLoginFromHeader,
                             onLoginTriggered = { triggerLoginFromHeader = false }
                         )

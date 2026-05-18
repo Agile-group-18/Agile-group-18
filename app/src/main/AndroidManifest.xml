@@ -14,7 +14,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SortSmart">
+        android:theme="@style/Theme.SortSmart"
+        android:usesCleartextTraffic="true">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -34,14 +35,16 @@
             <!-- Deep link for password reset emails -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data
-                    android:host="sortsmart.kleopatra.pro"
-                    android:pathPrefix="/reset-password"
-                    android:scheme="https" />
+                <data android:scheme="https" />
+                <data android:scheme="http" />
+
+                <data android:host="sortsmart.kleopatra.pro" />
+
+                <data android:pathPrefix="/reset-password" />
+                <data android:pathPrefix="/verify-email" />
             </intent-filter>
 
         </activity>
