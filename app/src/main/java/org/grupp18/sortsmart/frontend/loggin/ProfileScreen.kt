@@ -201,26 +201,28 @@ fun ProfileScreen(
             title = { Text("Verify Your Account", fontWeight = FontWeight.Bold) },
             text = { Text("Click below to verify your email address.") },
             confirmButton = {
-                Button(
-                    onClick = {
-                        authViewModel.verifyEmail(verifyToken) { statusCode ->
-                            showVerifyDialog = false
-                            if (statusCode == 200 || statusCode == 400) {
-                                verificationMessage = "Email Verified!"
-                                profileViewModel.loadProfile()
-                            } else {
-                                verificationMessage = "Verification Failed (Error: $statusCode)"
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text("Verify Now")
+                    Button(
+                        onClick = {
+                            authViewModel.verifyEmail(verifyToken) { statusCode ->
+                                showVerifyDialog = false
+                                if (statusCode == 200 || statusCode == 400) {
+                                    verificationMessage = "Email Verified!"
+                                    profileViewModel.loadProfile()
+                                } else {
+                                    verificationMessage = "Verification Failed (Error: $statusCode)"
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = ActiveColor)
+                    ) {
+                        Text("Verify Now")
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showVerifyDialog = false }) { Text("Later") }
-            }
         )
     }
     // Auth dialog — pass reset token so it opens on the correct screen
