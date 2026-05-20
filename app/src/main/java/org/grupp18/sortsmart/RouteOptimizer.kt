@@ -1,4 +1,4 @@
-package org.grupp18.sortsmart.domain
+package org.grupp18.sortsmart
 
 import com.google.android.gms.maps.model.LatLng
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
