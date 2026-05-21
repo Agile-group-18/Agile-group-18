@@ -1,7 +1,6 @@
 package org.grupp18.sortsmart
 
 import com.google.android.gms.maps.model.LatLng
-import org.grupp18.sortsmart.RouteOptimizer
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import org.grupp18.sortsmart.data.model.WasteCategory
 import org.junit.Assert.assertEquals
