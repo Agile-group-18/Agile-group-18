@@ -244,14 +244,34 @@ fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? =
                     composable<Home> { HomeScreen(isLoggedIn = isLoggedIn) }
                     composable<Map> { MapScreen() }
                     composable<Basket> {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        val mapViewModel: org.grupp18.sortsmart.viewmodel.MapViewModel = viewModel(
+                            factory = org.grupp18.sortsmart.viewmodel.MapViewModelFactory(context)
+                        )
+
+                        val isCalculating by mapViewModel.isCalculatingRoute.collectAsStateWithLifecycle()
+
                         WasteBasketScreen(
                             items = wasteBasket,
+                            isCalculatingRoute = isCalculating,
                             onDiscard = { item ->
                                 wasteBasket.remove(item)
                             },
-                            onShowRoute = {
+                            onShowRouteFewestStops = {
                                 showSearchScreen = false
-                                navigateToTopLevel(navController, Map)
+                                mapViewModel.calculateAndShowRoute(
+                                    context,
+                                    wasteBasket,
+                                    org.grupp18.sortsmart.RouteOptimizer.OptimizationStrategy.FEWEST_STOPS
+                                )
+                            },
+                            onShowRouteShortest = {
+                                showSearchScreen = false
+                                mapViewModel.calculateAndShowRoute(
+                                    context,
+                                    wasteBasket,
+                                    org.grupp18.sortsmart.RouteOptimizer.OptimizationStrategy.SHORTEST_DISTANCE
+                                )
                             },
                             modifier = Modifier
                                 .fillMaxSize()

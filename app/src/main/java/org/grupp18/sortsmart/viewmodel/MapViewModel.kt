@@ -12,6 +12,13 @@ import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import org.grupp18.sortsmart.data.model.WasteCategory
 import org.grupp18.sortsmart.data.repository.StationRepository
+import android.content.Context
+import android.widget.Toast
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.withContext
+import org.grupp18.sortsmart.data.model.ItemDetail
+import org.grupp18.sortsmart.RouteOptimizer
+import org.grupp18.sortsmart.util.MapNavigationUtil
 
 class MapViewModel(
     private val repository: StationRepository
@@ -212,6 +219,75 @@ class MapViewModel(
                 _errorMessage.value = null
             } else {
                 _errorMessage.value = "Could not submit all reports."
+            }
+        }
+    }
+
+    private val _isCalculatingRoute = MutableStateFlow(false)
+    val isCalculatingRoute: StateFlow<Boolean> = _isCalculatingRoute.asStateFlow()
+
+    private val routeOptimizer = RouteOptimizer()
+
+    fun calculateAndShowRoute(
+        context: Context,
+        basketItems: List<ItemDetail>,
+        strategy: RouteOptimizer.OptimizationStrategy
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isCalculatingRoute.value = true
+
+            try {
+                val allCategories = repository.getCachedCategories()
+
+                val basketCategoryNames = basketItems
+                    .mapNotNull { it.category?.name?.lowercase() }
+                    .toSet()
+
+                val basketCategories = allCategories.filter { it.name.lowercase() in basketCategoryNames }
+
+                if (basketCategories.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Basket is empty or categories are missing!", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                val mockedStartLocation = LatLng(57.708870, 11.974560)
+
+                val availableStations = repository.getStationsForRouting()
+
+                if (availableStations.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "No stations downloaded yet! Please open the Map tab once to sync.", Toast.LENGTH_LONG).show()
+                    }
+                    return@launch
+                }
+
+                val route = routeOptimizer.calculateOptimalRoute(
+                    currentLocation = mockedStartLocation,
+                    basketCategories = basketCategories,
+                    availableStations = availableStations,
+                    strategy = strategy
+                )
+
+                withContext(Dispatchers.Main) {
+                    MapNavigationUtil.launchGoogleMapsRoute(
+                        context = context,
+                        route = route,
+                        origin = mockedStartLocation
+                    )
+                }
+
+            } catch (e: RouteOptimizer.RouteNotFoundException) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "No stations found that accept this combination of waste.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "An error occurred calculating the route.", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                _isCalculatingRoute.value = false
             }
         }
     }
