@@ -23,8 +23,10 @@ import org.grupp18.sortsmart.data.model.ItemDetail
 @Composable
 fun WasteBasketScreen(
     items: List<ItemDetail>,
+    isCalculatingRoute: Boolean,
     onDiscard: (ItemDetail) -> Unit,
-    onShowRoute: () -> Unit,
+    onShowRouteFewestStops: () -> Unit,
+    onShowRouteShortest: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -65,20 +67,46 @@ fun WasteBasketScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = onShowRoute,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF2E7D32),
-                contentColor = Color.White
-            ),
-            shape = RoundedCornerShape(16.dp)
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Show route")
+            Button(
+                onClick = onShowRouteFewestStops,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                enabled = !isCalculatingRoute && items.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E7D32),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                if (isCalculatingRoute) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Fewest Stops")
+                }
+            }
+
+            OutlinedButton(
+                onClick = onShowRouteShortest,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+                enabled = !isCalculatingRoute && items.isNotEmpty(),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                if (isCalculatingRoute) {
+                    CircularProgressIndicator(color = Color(0xFF2E7D32), modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Shortest Route", color = Color(0xFF2E7D32))
+                }
+            }
         }
+
     }
 }
 

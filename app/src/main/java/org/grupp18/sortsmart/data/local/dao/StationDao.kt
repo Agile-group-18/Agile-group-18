@@ -192,4 +192,8 @@ interface StationDao {
             syncedAtMillis = syncedAtMillis
         )
     }
+
+    @Transaction
+    @Query("SELECT * FROM station_markers ORDER BY id")
+    suspend fun getAllMarkersWithCategories(): List<StationMarkerWithCategories>
 }

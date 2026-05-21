@@ -6,25 +6,28 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
+import com.google.android.gms.maps.model.LatLng
 
 object MapNavigationUtil {
 
     /**
      * Launches Google Maps with a calculated route of recycling stations.
-     * * @param context The Android context (used to launch the intent and show Toasts).
+     * @param context The Android context.
      * @param route The ordered list of stations to visit.
+     * @param origin The starting point of the route.
      */
-    fun launchGoogleMapsRoute(context: Context, route: List<RecyclingStationMarker>) {
+    fun launchGoogleMapsRoute(context: Context, route: List<RecyclingStationMarker>, origin: LatLng) {
         if (route.isEmpty()) {
             Toast.makeText(context, "No route available to navigate", Toast.LENGTH_SHORT).show()
             return
         }
 
         val destination = route.last().location
-
         val waypoints = route.dropLast(1).map { it.location }
 
         val uriBuilder = StringBuilder("https://www.google.com/maps/dir/?api=1")
+
+        uriBuilder.append("&origin=${origin.latitude},${origin.longitude}")
 
         uriBuilder.append("&destination=${destination.latitude},${destination.longitude}")
 
@@ -45,12 +48,7 @@ object MapNavigationUtil {
         try {
             context.startActivity(intent)
         } catch (e: ActivityNotFoundException) {
-            Toast.makeText(
-                context,
-                "Google Maps is not installed. Please install it to use navigation.",
-                Toast.LENGTH_LONG
-            ).show()
-
+            Toast.makeText(context, "Google Maps is not installed.", Toast.LENGTH_LONG).show()
         }
     }
 }
