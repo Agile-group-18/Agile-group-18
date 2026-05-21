@@ -28,12 +28,15 @@ class StationRepository(context: Context) {
         problemOnly: Boolean = false
     ): List<RecyclingStationMarker> {
         val categoryIds = selectedCategoryIds.toList()
+
         val entities = when {
             categoryIds.isEmpty() && problemOnly -> stationDao.getProblemMarkers()
             categoryIds.isEmpty() -> stationDao.getAllMarkers()
-            problemOnly -> stationDao.getProblemMarkersMatchingAnyCategory(categoryIds)
-            else -> stationDao.getMarkersMatchingAnyCategory(categoryIds)
+
+            problemOnly -> stationDao.getProblemMarkersMatchingAllCategories(categoryIds, categoryIds.size)
+            else -> stationDao.getMarkersMatchingAllCategories(categoryIds, categoryIds.size)
         }
+
         return entities.map { it.toModel() }
     }
 

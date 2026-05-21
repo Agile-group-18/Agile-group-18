@@ -19,6 +19,14 @@ import kotlinx.coroutines.withContext
 import org.grupp18.sortsmart.data.model.ItemDetail
 import org.grupp18.sortsmart.RouteOptimizer
 import org.grupp18.sortsmart.util.MapNavigationUtil
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class MapViewModel(
     private val repository: StationRepository
@@ -252,8 +260,6 @@ class MapViewModel(
                     return@launch
                 }
 
-                val mockedStartLocation = LatLng(57.708870, 11.974560)
-
                 val availableStations = repository.getStationsForRouting()
 
                 if (availableStations.isEmpty()) {
@@ -263,8 +269,41 @@ class MapViewModel(
                     return@launch
                 }
 
+                val hasLocationPermission = ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+                val startLocation = if (hasLocationPermission) {
+                    try {
+                        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+
+                        val location = suspendCancellableCoroutine { continuation ->
+                            fusedLocationClient.getCurrentLocation(
+                                Priority.PRIORITY_HIGH_ACCURACY,
+                                CancellationTokenSource().token
+                            ).addOnSuccessListener { loc ->
+                                continuation.resume(loc)
+                            }.addOnFailureListener {
+                                continuation.resume(null)
+                            }
+                        }
+
+                        if (location != null) {
+                            LatLng(location.latitude, location.longitude)
+                        } else {
+                            LatLng(57.708870, 11.974560)
+                        }
+                    } catch (e: SecurityException) {
+                        LatLng(57.708870, 11.974560)
+                    }
+                } else {
+                    LatLng(57.708870, 11.974560)
+                }
+
                 val route = routeOptimizer.calculateOptimalRoute(
-                    currentLocation = mockedStartLocation,
+                    currentLocation = startLocation,
                     basketCategories = basketCategories,
                     availableStations = availableStations,
                     strategy = strategy
@@ -274,7 +313,7 @@ class MapViewModel(
                     MapNavigationUtil.launchGoogleMapsRoute(
                         context = context,
                         route = route,
-                        origin = mockedStartLocation
+                        origin = startLocation
                     )
                 }
 
