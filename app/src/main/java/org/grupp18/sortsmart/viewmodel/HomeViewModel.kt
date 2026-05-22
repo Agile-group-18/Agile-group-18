@@ -89,6 +89,13 @@ class HomeViewModel(
         }
     }
 
+    fun refresh(context: Context) {
+        _nearestStation.value = NearestStationState.Idle
+        _dailyTip.value = DailyTipState.Idle
+        loadRandomTip()
+        loadNearestStation(context)
+    }
+
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =

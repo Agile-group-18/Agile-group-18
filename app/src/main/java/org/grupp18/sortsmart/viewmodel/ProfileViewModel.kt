@@ -15,9 +15,7 @@ class ProfileViewModel : ViewModel() {
     val profileState: StateFlow<ProfileState> = _profileState
 
     fun loadProfile() {
-        if (_profileState.value is ProfileState.Loading ||
-            _profileState.value is ProfileState.Loaded
-        ) return
+        if (_profileState.value is ProfileState.Loading) return
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {

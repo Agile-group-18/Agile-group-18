@@ -18,7 +18,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -114,7 +113,7 @@ fun SortSmartApp(initialResetToken: String? = null, initialVerifyToken: String? 
     val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val isRestoringSession by authViewModel.isRestoringSession.collectAsStateWithLifecycle()
 
-    // Block all UI until the DB session check completes — prevents logged-out flash
+    // Block all UI until the DB session check completes - prevents logged-out flash
     if (isRestoringSession) {
         Box(
             modifier = Modifier

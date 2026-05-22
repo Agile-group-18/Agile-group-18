@@ -92,8 +92,9 @@ fun HomeScreen(
         if (isLoggedIn) profileViewModel.loadProfile()
     }
 
-    LaunchedEffect(Unit) {
-        homeViewModel.loadRandomTip()
+    LaunchedEffect(isLoggedIn) {
+        homeViewModel.refresh(context)
+        if (isLoggedIn) profileViewModel.loadProfile()
         locationPermissionLauncher.launch(
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
