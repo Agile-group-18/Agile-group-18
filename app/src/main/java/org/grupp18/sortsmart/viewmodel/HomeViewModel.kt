@@ -61,10 +61,12 @@ class HomeViewModel(
             _nearestStation.value = NearestStationState.Loading
             try {
                 val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                val cts = CancellationTokenSource()
                 val location = suspendCancellableCoroutine { continuation ->
+                    continuation.invokeOnCancellation { cts.cancel() }
                     fusedClient.getCurrentLocation(
                         Priority.PRIORITY_BALANCED_POWER_ACCURACY,
-                        CancellationTokenSource().token
+                        cts.token
                     ).addOnSuccessListener { loc ->
                         continuation.resume(loc)
                     }.addOnFailureListener {

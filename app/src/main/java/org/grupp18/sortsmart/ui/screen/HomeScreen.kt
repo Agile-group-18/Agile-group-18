@@ -102,11 +102,10 @@ fun HomeScreen(
         )
     }
 
-    val displayName = when (val s = profileState) {
-        is ProfileState.Loaded -> s.profile.displayName?.takeIf { it.isNotBlank() }
-            ?: s.profile.username
 
-        else -> null
+    val displayName = when (val s = profileState) {
+        is ProfileState.Loaded -> "Hi, ${s.profile.username}!"
+        else -> "Hi there!"  // shows while loading or on error
     }
 
     Column(
@@ -119,7 +118,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Hi, ${displayName ?: "there"}!",
+            text = displayName,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1A1C18),
@@ -209,7 +208,6 @@ private fun ActivityCard(profileState: ProfileState) {
             HorizontalDivider(color = DividerOnGreen, thickness = 1.dp)
             Spacer(Modifier.height(12.dp))
 
-            // Member since
             val memberSince = profile?.createdAt?.let { raw ->
                 runCatching {
                     val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.ENGLISH)

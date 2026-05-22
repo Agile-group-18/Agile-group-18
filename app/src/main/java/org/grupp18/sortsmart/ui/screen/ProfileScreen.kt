@@ -101,20 +101,28 @@ fun ProfileScreen(
 
     // Load profile whenever the user logs in
     LaunchedEffect(isLoggedIn) {
-        if (isLoggedIn) profileViewModel.loadProfile()
+        if (isLoggedIn && profileViewModel.profileState.value !is ProfileState.Loaded) {
+            profileViewModel.loadProfile()
+        }
     }
 
     Box(modifier = modifier.background(BackgroundColor)) {
         verificationMessage?.let { msg ->
             Card(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (msg.contains("Verified")) ActiveColor.copy(alpha = 0.1f) else ErrorColor.copy(alpha = 0.1f)
+                    containerColor = if (msg.contains("Verified")) ActiveColor.copy(alpha = 0.1f) else ErrorColor.copy(
+                        alpha = 0.1f
+                    )
                 )
             ) {
                 Text(
                     text = msg,
-                    modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .align(Alignment.CenterHorizontally),
                     color = if (msg.contains("Verified")) ActiveColor else ErrorColor,
                     fontWeight = FontWeight.Bold
                 )
@@ -210,9 +218,15 @@ fun ProfileScreen(
                             profileViewModel.updateProfile(newUsername, newEmail)
                         }
                     },
-                    onLogout = { authViewModel.logout() },
+                    onLogout = {
+                        authViewModel.logout()
+                        profileViewModel.resetProfile()
+                    },
                     onDeleteAccount = {
-                        profileViewModel.deleteProfile { authViewModel.logout() }
+                        profileViewModel.deleteProfile {
+                            authViewModel.logout()
+                            profileViewModel.resetProfile()
+                        }
                     }
                 )
             }
@@ -223,7 +237,13 @@ fun ProfileScreen(
         AlertDialog(
             onDismissRequest = { showVerifyDialog = false },
             containerColor = BackgroundColor,
-            icon = { Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = ActiveColor) },
+            icon = {
+                Icon(
+                    Icons.Default.VerifiedUser,
+                    contentDescription = null,
+                    tint = ActiveColor
+                )
+            },
             title = { Text("Verify Your Account", fontWeight = FontWeight.Bold) },
             text = { Text("Click below to verify your email address.") },
             confirmButton = {

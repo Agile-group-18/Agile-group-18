@@ -15,6 +15,9 @@ class ProfileViewModel : ViewModel() {
     val profileState: StateFlow<ProfileState> = _profileState
 
     fun loadProfile() {
+        if (_profileState.value is ProfileState.Loading ||
+            _profileState.value is ProfileState.Loaded
+        ) return
         viewModelScope.launch {
             _profileState.value = ProfileState.Loading
             try {
@@ -61,7 +64,7 @@ class ProfileViewModel : ViewModel() {
             try {
                 val response = AuthRetrofitClient.api.deleteProfile()
                 if (response.isSuccessful) {
-                    AuthRetrofitClient.accessToken = null
+                    _profileState.value = ProfileState.Idle
                     onDeleted()
                 } else {
                     _profileState.value = ProfileState.Error("Delete failed: ${response.code()}")
@@ -70,5 +73,9 @@ class ProfileViewModel : ViewModel() {
                 _profileState.value = ProfileState.Error("Network error: ${e.localizedMessage}")
             }
         }
+    }
+
+    fun resetProfile() {
+        _profileState.value = ProfileState.Idle
     }
 }
