@@ -47,7 +47,6 @@ import org.grupp18.sortsmart.viewmodel.ProfileViewModel
 import org.grupp18.sortsmart.viewmodel.state.ProfileState
 
 private val TitleTextColor = SortSmartInk
-private val NotificationBadgeColor = Color(0xFFFA2B35)
 private val ActiveColor = SortSmartGreen
 
 @Preview(showBackground = true)
@@ -85,7 +84,7 @@ fun Header(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .height(40.dp)
+            .height(56.dp)
             .padding(horizontal = 20.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -135,7 +134,6 @@ private fun HeaderActions(
     onLoginClick: () -> Unit
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        NotificationBell(hasUnread = true)
         Spacer(modifier = Modifier.width(12.dp))
 
         if (isLoggedIn) {
@@ -155,7 +153,7 @@ private fun HeaderActions(
                     containerColor = ActiveColor,
                     contentColor = Color.White
                 ),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Login,
@@ -165,28 +163,6 @@ private fun HeaderActions(
                 Spacer(Modifier.width(6.dp))
                 Text("Log In", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
-        }
-    }
-}
-
-@Composable
-private fun NotificationBell(hasUnread: Boolean) {
-    Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-        Icon(
-            imageVector = Icons.Filled.Notifications,
-            contentDescription = "Notifications",
-            modifier = Modifier.size(22.dp),
-            tint = TitleTextColor
-        )
-        if (hasUnread) {
-            Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-3).dp, y = 3.dp)
-                    .clip(CircleShape)
-                    .background(NotificationBadgeColor)
-            )
         }
     }
 }
