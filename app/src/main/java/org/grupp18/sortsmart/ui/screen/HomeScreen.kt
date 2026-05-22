@@ -1,9 +1,12 @@
 package org.grupp18.sortsmart.ui.screen
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +50,7 @@ import org.grupp18.sortsmart.viewmodel.HomeViewModel
 import org.grupp18.sortsmart.viewmodel.NearestStationState
 import org.grupp18.sortsmart.viewmodel.ProfileViewModel
 import org.grupp18.sortsmart.viewmodel.state.ProfileState
+import androidx.core.net.toUri
 
 private val GreenDark = Color(0xFF2D5A1B)
 private val GreenMedium = Color(0xFF386B21)
@@ -295,11 +300,22 @@ private fun EcoTipCardShimmer() {
     }
 }
 
+@SuppressLint("UseKtx")
 @Composable
 private fun NearestStationCard(station: StationDetailDto) {
+    val context = LocalContext.current
+
     val distanceText = station.distanceKm?.let {
         if (it < 1.0) "${"%.0f".format(it * 1000)} m away"
         else "${"%.1f".format(it)} km away"
+    }
+
+    val mapsUri = remember(station.latitude, station.longitude) {
+        "geo:${station.latitude},${station.longitude}?q=${station.latitude},${station.longitude}(${
+            android.net.Uri.encode(
+                station.name
+            )
+        })".toUri()
     }
     Row(
         modifier = Modifier
@@ -351,7 +367,24 @@ private fun NearestStationCard(station: StationDetailDto) {
                 )
             }
             Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
+                            setPackage("com.google.android.apps.maps")
+                        }
+                        // Fall back to any app that handles geo: URIs if Maps isn't installed
+                        val chooser = Intent.createChooser(
+                            intent.takeIf {
+                                it.resolveActivity(context.packageManager) != null
+                            } ?: Intent(Intent.ACTION_VIEW, mapsUri),
+                            null
+                        )
+                        context.startActivity(chooser)
+                    }
+            ) {
                 Text(
                     text = "View on map",
                     fontSize = 14.sp,
