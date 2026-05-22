@@ -241,93 +241,83 @@ class MapViewModel(
         basketItems: List<ItemDetail>,
         strategy: RouteOptimizer.OptimizationStrategy
     ) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _isCalculatingRoute.value = true
 
-            try {
-                val allCategories = repository.getCachedCategories()
+            if (basketItems.isEmpty()) {
+                _errorMessage.value = "Your basket is empty. Add some items first!"
+                _isCalculatingRoute.value = false
+                return@launch
+            }
 
-                val basketCategoryNames = basketItems
-                    .mapNotNull { it.category?.name?.lowercase() }
-                    .toSet()
-
-                val basketCategories = allCategories.filter { it.name.lowercase() in basketCategoryNames }
-
-                if (basketCategories.isEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "Basket is empty or categories are missing!", Toast.LENGTH_SHORT).show()
-                    }
-                    return@launch
-                }
-
-                val availableStations = repository.getStationsForRouting()
-
-                if (availableStations.isEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(context, "No stations downloaded yet! Please open the Map tab once to sync.", Toast.LENGTH_LONG).show()
-                    }
-                    return@launch
-                }
-
+            val startLocation = try {
                 val hasLocationPermission = ContextCompat.checkSelfPermission(
                     context, Manifest.permission.ACCESS_FINE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
                     context, Manifest.permission.ACCESS_COARSE_LOCATION
                 ) == PackageManager.PERMISSION_GRANTED
 
-                val startLocation = if (hasLocationPermission) {
-                    try {
-                        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-
-                        val location = suspendCancellableCoroutine { continuation ->
-                            fusedLocationClient.getCurrentLocation(
-                                Priority.PRIORITY_HIGH_ACCURACY,
-                                CancellationTokenSource().token
-                            ).addOnSuccessListener { loc ->
-                                continuation.resume(loc)
-                            }.addOnFailureListener {
-                                continuation.resume(null)
-                            }
+                if (hasLocationPermission) {
+                    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                    val location = suspendCancellableCoroutine { continuation ->
+                        fusedLocationClient.getCurrentLocation(
+                            Priority.PRIORITY_HIGH_ACCURACY,
+                            CancellationTokenSource().token
+                        ).addOnSuccessListener { loc ->
+                            continuation.resume(loc)
+                        }.addOnFailureListener {
+                            continuation.resume(null)
                         }
+                    }
 
-                        if (location != null) {
-                            LatLng(location.latitude, location.longitude)
-                        } else {
-                            LatLng(57.708870, 11.974560)
-                        }
-                    } catch (e: SecurityException) {
-                        LatLng(57.708870, 11.974560)
+                    if (location != null) {
+                        LatLng(location.latitude, location.longitude)
+                    } else {
+                        LatLng(57.708870, 11.974560) // Gothenburg Central fallback
                     }
                 } else {
-                    LatLng(57.708870, 11.974560)
+                    LatLng(57.708870, 11.974560) // Gothenburg Central fallback
                 }
+            } catch (e: SecurityException) {
+                LatLng(57.708870, 11.974560) // Gothenburg Central fallback
+            }
 
-                val route = routeOptimizer.calculateOptimalRoute(
+            val basketCategories = basketItems.mapNotNull { item ->
+                item.category?.let { cat ->
+                    WasteCategory(
+                        id = cat.id ?: 0,
+                        name = cat.name,
+                        imageUrl = cat.imageUrl
+                    )
+                }
+            }
+
+            val availableStations = repository.getStationsForRouting()
+
+            val route = try {
+                routeOptimizer.calculateOptimalRoute(
                     currentLocation = startLocation,
                     basketCategories = basketCategories,
                     availableStations = availableStations,
                     strategy = strategy
                 )
-
-                withContext(Dispatchers.Main) {
-                    MapNavigationUtil.launchGoogleMapsRoute(
-                        context = context,
-                        route = route,
-                        origin = startLocation
-                    )
-                }
-
             } catch (e: RouteOptimizer.RouteNotFoundException) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "No stations found that accept this combination of waste.", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "An error occurred calculating the route.", Toast.LENGTH_SHORT).show()
-                }
-            } finally {
-                _isCalculatingRoute.value = false
+                emptyList()
             }
+
+            if (route.isEmpty()) {
+                _errorMessage.value = "No nearby stations accept the specific items in your basket."
+                _isCalculatingRoute.value = false
+                return@launch
+            }
+
+            MapNavigationUtil.launchGoogleMapsRoute(
+                context = context,
+                route = route,
+                origin = startLocation
+            )
+
+            _isCalculatingRoute.value = false
         }
     }
 }
