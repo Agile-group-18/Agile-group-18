@@ -1,6 +1,12 @@
 package org.grupp18.sortsmart.ui.screen
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +15,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,36 +25,40 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.grupp18.sortsmart.data.api.dto.StationDetailDto
+import org.grupp18.sortsmart.viewmodel.DailyTipState
+import org.grupp18.sortsmart.viewmodel.HomeViewModel
+import org.grupp18.sortsmart.viewmodel.NearestStationState
 import org.grupp18.sortsmart.viewmodel.ProfileViewModel
 import org.grupp18.sortsmart.viewmodel.state.ProfileState
+import androidx.core.net.toUri
 
-// ── Brand colors ────────────────────────────────────────────────────────────
-private val GreenDark = Color(0xFF2D5A1B)   // impact card background
-private val GreenMedium = Color(0xFF386B21)   // location icon bg, badge bg
-private val GreenLight = Color(0xFFD4E8C2)   // eco-tip card background
-private val GreenLinkText = Color(0xFF3A6E24)   // "View on map" text
-private val NeutralSurface = Color(0xFFF5F5F0)   // nearest-station card bg
-private val NeutralBg = Color(0xFFF8F8F4)   // page background
-private val DividerOnGreen = Color(0xFF4A7A30)   // divider inside the green card
+private val GreenDark = Color(0xFF2D5A1B)
+private val GreenMedium = Color(0xFF386B21)
+private val GreenLight = Color(0xFFD4E8C2)
+private val GreenLinkText = Color(0xFF3A6E24)
+private val NeutralSurface = Color(0xFFF5F5F0)
+private val NeutralBg = Color(0xFFF8F8F4)
+private val DividerOnGreen = Color(0xFF4A7A30)
 private val TextOnGreen = Color(0xFFFFFFFF)
 private val TextOnGreenMuted = Color(0xFFB8D4A0)
 
@@ -62,17 +71,42 @@ fun HomeScreenPreview() {
 @Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
-    isLoggedIn: Boolean = false
+    isLoggedIn: Boolean = false,
+    profileViewModel: ProfileViewModel = viewModel(),
+    homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
-    val profileViewModel: ProfileViewModel = viewModel()
+    val context = LocalContext.current
     val profileState by profileViewModel.profileState.collectAsStateWithLifecycle()
+    val nearestStationState by homeViewModel.nearestStation.collectAsStateWithLifecycle()
+    val dailyTipState by homeViewModel.dailyTip.collectAsStateWithLifecycle()
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) homeViewModel.loadNearestStation(context)
+    }
 
     LaunchedEffect(isLoggedIn) {
         if (isLoggedIn) profileViewModel.loadProfile()
     }
 
-    val displayName = (profileState as? ProfileState.Loaded)?.profile
-        ?.let { it.displayName?.takeIf { n -> n.isNotBlank() } ?: it.username }
+    LaunchedEffect(Unit) {
+        homeViewModel.loadRandomTip()
+        locationPermissionLauncher.launch(
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        )
+    }
+
+
+    val displayName = when (val s = profileState) {
+        is ProfileState.Loaded -> "Hi, ${s.profile.username}!"
+        else -> "Hi there!"  // shows while loading or on error
+    }
 
     Column(
         modifier = modifier
@@ -84,23 +118,33 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Hi, ${displayName ?: "there"}!",
+            text = displayName,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF1A1C18),
             modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
         )
 
-        ImpactCard()
+        ActivityCard(profileState = profileState)
 
-        EcoTipCard()
+        when (val s = dailyTipState) {
+            is DailyTipState.Loading -> EcoTipCardShimmer()
+            is DailyTipState.Ready -> EcoTipCard(tip = s.tip)
+            else -> {}
+        }
 
-        NearestStationCard()
+        when (val s = nearestStationState) {
+            is NearestStationState.Loading -> NearestStationCardShimmer()
+            is NearestStationState.Ready -> s.station?.let { NearestStationCard(station = it) }
+            else -> {}
+        }
     }
 }
 
 @Composable
-private fun ImpactCard() {
+private fun ActivityCard(profileState: ProfileState) {
+    val profile = (profileState as? ProfileState.Loaded)?.profile
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -109,86 +153,81 @@ private fun ImpactCard() {
             .padding(horizontal = 24.dp, vertical = 20.dp)
     ) {
         Column {
-            // Label
             Text(
-                text = "Your Impact",
+                text = "Your Activity",
                 fontSize = 14.sp,
                 color = TextOnGreenMuted,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 0.3.sp
             )
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(fontSize = 48.sp, fontWeight = FontWeight.Bold)) {
-                            append("24.5")
-                        }
-                        withStyle(SpanStyle(fontSize = 18.sp, fontWeight = FontWeight.Normal)) {
-                            append("kg CO₂ saved")
-                        }
-                    },
-                    color = TextOnGreen,
-                    lineHeight = 52.sp
-                )
-                Text(
-                    text = "↗",
-                    fontSize = 48.sp,
-                    color = GreenDark.copy(alpha = 0.0f).let { Color(0x554A7A30) },
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.offset(x = 8.dp)
-                )
+                // Reports
+                Column {
+                    Text(
+                        text = profile?.reportCount?.toString() ?: "—",
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextOnGreen,
+                        lineHeight = 52.sp
+                    )
+                    Text(
+                        text = "REPORTS SUBMITTED",
+                        fontSize = 11.sp,
+                        color = TextOnGreenMuted,
+                        letterSpacing = 1.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                // Verified badge
+                if (profile?.isVerified == true) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x334A7A30))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "✓ Verified",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextOnGreen
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(16.dp))
-
             HorizontalDivider(color = DividerOnGreen, thickness = 1.dp)
-
             Spacer(Modifier.height(12.dp))
+
+            val memberSince = profile?.createdAt?.let { raw ->
+                runCatching {
+                    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.ENGLISH)
+                    val date = sdf.parse(raw)!!
+                    val out = java.text.SimpleDateFormat("MMM yyyy", java.util.Locale.ENGLISH)
+                    out.format(date)
+                }.getOrNull()
+            }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text(
-                        text = "RECYCLED",
+                        text = "MEMBER SINCE",
                         fontSize = 11.sp,
                         color = TextOnGreenMuted,
                         letterSpacing = 1.sp,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "128 items",
-                        fontSize = 18.sp,
-                        color = TextOnGreen,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                // Vertical pipe divider
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .width(1.dp)
-                        .height(36.dp)
-                        .background(DividerOnGreen)
-                )
-
-                // Rank
-                Column {
-                    Text(
-                        text = "RANK",
-                        fontSize = 11.sp,
-                        color = TextOnGreenMuted,
-                        letterSpacing = 1.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Top 15%",
+                        text = memberSince ?: "—",
                         fontSize = 18.sp,
                         color = TextOnGreen,
                         fontWeight = FontWeight.Bold
@@ -200,7 +239,7 @@ private fun ImpactCard() {
 }
 
 @Composable
-private fun EcoTipCard() {
+private fun EcoTipCard(tip: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,7 +249,6 @@ private fun EcoTipCard() {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // White pill icon
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -225,7 +263,6 @@ private fun EcoTipCard() {
                 modifier = Modifier.size(26.dp)
             )
         }
-
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "Daily Eco-Tip",
@@ -234,7 +271,7 @@ private fun EcoTipCard() {
                 color = Color(0xFF1A1C17)
             )
             Text(
-                text = "Rinse your plastics before throwing them in the blue bin to prevent contaminating the batch.",
+                text = tip,
                 fontSize = 14.sp,
                 color = Color(0xFF3A3D35),
                 lineHeight = 20.sp
@@ -244,7 +281,40 @@ private fun EcoTipCard() {
 }
 
 @Composable
-private fun NearestStationCard() {
+private fun EcoTipCardShimmer() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(GreenLight.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = GreenMedium,
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
+    }
+}
+
+@SuppressLint("UseKtx")
+@Composable
+private fun NearestStationCard(station: StationDetailDto) {
+    val context = LocalContext.current
+
+    val distanceText = station.distanceKm?.let {
+        if (it < 1.0) "${"%.0f".format(it * 1000)} m away"
+        else "${"%.1f".format(it)} km away"
+    }
+
+    val mapsUri = remember(station.latitude, station.longitude) {
+        "geo:${station.latitude},${station.longitude}?q=${station.latitude},${station.longitude}(${
+            android.net.Uri.encode(
+                station.name
+            )
+        })".toUri()
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -254,7 +324,6 @@ private fun NearestStationCard() {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Top
     ) {
-        // Green rounded-square location icon
         Box(
             modifier = Modifier
                 .size(52.dp)
@@ -269,7 +338,6 @@ private fun NearestStationCard() {
                 modifier = Modifier.size(28.dp)
             )
         }
-
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 text = "Nearest Station",
@@ -278,13 +346,43 @@ private fun NearestStationCard() {
                 color = Color(0xFF1A1C17)
             )
             Text(
-                text = "Central Recycling Hub is 1.2km away and accepts all your items.",
+                text = buildString {
+                    append(station.name)
+                    if (distanceText != null) append(" is $distanceText")
+                    station.address?.let { append(" · $it") }
+                        ?: append(" · ${station.municipality}")
+                },
                 fontSize = 14.sp,
                 color = Color(0xFF3A3D35),
                 lineHeight = 20.sp
             )
+            station.openingHours?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = "Open: $it",
+                    fontSize = 13.sp,
+                    color = Color(0xFF5A5D55),
+                    lineHeight = 18.sp
+                )
+            }
             Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable {
+                        val intent = Intent(Intent.ACTION_VIEW, mapsUri).apply {
+                            setPackage("com.google.android.apps.maps")
+                        }
+                        // Fall back to any app that handles geo: URIs if Maps isn't installed
+                        val chooser = Intent.createChooser(
+                            intent.takeIf {
+                                it.resolveActivity(context.packageManager) != null
+                            } ?: Intent(Intent.ACTION_VIEW, mapsUri),
+                            null
+                        )
+                        context.startActivity(chooser)
+                    }
+            ) {
                 Text(
                     text = "View on map",
                     fontSize = 14.sp,
@@ -300,5 +398,23 @@ private fun NearestStationCard() {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NearestStationCardShimmer() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(NeutralSurface),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = GreenMedium,
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
     }
 }

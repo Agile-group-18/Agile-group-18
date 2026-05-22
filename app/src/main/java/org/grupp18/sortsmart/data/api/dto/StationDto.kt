@@ -48,6 +48,17 @@ data class StationCategoryDto(
     val status: String = "unknown"
 )
 
+data class NearbyResponseDto(
+    val total: Int,
+    val stations: List<StationDetailDto>,
+
+    @SerializedName("query_lat")
+    val queryLat: Double,
+    @SerializedName("query_lon")
+    val queryLon: Double
+)
+
+
 data class CategoryDto(
     val id: Int,
     val name: String,

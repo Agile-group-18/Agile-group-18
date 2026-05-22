@@ -5,6 +5,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+    </queries>
+
     <application
         android:name=".SortSmartApplication"
         android:allowBackup="true"
@@ -14,8 +22,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SortSmart"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.SortSmart">
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -28,23 +36,22 @@
             <!-- Launcher intent -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Deep link for password reset emails -->
+            <!-- Deep link for password reset / email verification -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="sortsmart.kleopatra.pro" android:pathPrefix="/reset-password" />
+            </intent-filter>
 
-                <data android:scheme="https" />
-                <data android:scheme="http" />
-
-                <data android:host="sortsmart.kleopatra.pro" />
-
-                <data android:pathPrefix="/reset-password" />
-                <data android:pathPrefix="/verify-email" />
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="sortsmart.kleopatra.pro" android:pathPrefix="/verify-email" />
             </intent-filter>
 
         </activity>

@@ -1,9 +1,11 @@
 package org.grupp18.sortsmart.data.repository
 
 import android.content.Context
+import org.grupp18.sortsmart.RouteOptimizer
 import org.grupp18.sortsmart.data.api.AuthRetrofitClient
 import org.grupp18.sortsmart.data.api.RetrofitClient
 import org.grupp18.sortsmart.data.api.dto.ReportRequestDto
+import org.grupp18.sortsmart.data.api.dto.StationDetailDto
 import org.grupp18.sortsmart.data.local.SortSmartDatabase
 import org.grupp18.sortsmart.data.local.entity.CacheMetadataEntity
 import org.grupp18.sortsmart.data.mapper.toEntity
@@ -13,7 +15,6 @@ import org.grupp18.sortsmart.data.mapper.toStationCategoryEntities
 import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import org.grupp18.sortsmart.data.model.WasteCategory
-import org.grupp18.sortsmart.RouteOptimizer
 
 class StationRepository(context: Context) {
 
@@ -101,5 +102,18 @@ class StationRepository(context: Context) {
                 supportedCategoryIds = relation.categories.map { it.categoryId }.toSet()
             )
         }
+    }
+
+    suspend fun getNearestStation(
+        lat: Double,
+        lon: Double,
+        radiusKm: Double = 10.0
+    ): Result<StationDetailDto?> = runCatching {
+        api.getNearbyStations(lat = lat, lon = lon, radiusKm = radiusKm).stations.firstOrNull()
+    }
+
+    suspend fun getRandomTip(): Result<String?> = runCatching {
+        val tips = api.getSortingTips()
+        tips.randomOrNull()
     }
 }

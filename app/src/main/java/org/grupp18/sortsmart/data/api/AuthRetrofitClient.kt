@@ -2,7 +2,10 @@ package org.grupp18.sortsmart.data.api
 
 import android.content.Context
 import kotlinx.coroutines.runBlocking
+import okhttp3.Authenticator
 import okhttp3.OkHttpClient
+import okhttp3.Response
+import okhttp3.Route
 import okhttp3.logging.HttpLoggingInterceptor
 import org.grupp18.sortsmart.data.api.dto.RefreshRequest
 import org.grupp18.sortsmart.data.local.SortSmartDatabase
@@ -75,6 +78,22 @@ object AuthRetrofitClient {
         }
     }
 
+    private val tokenAuthenticator = Authenticator { _: Route?, response: Response ->
+        // If this is already a retry, give up to avoid infinite loop
+        if (response.request.header("X-Retry-After-Refresh") != null) return@Authenticator null
+
+        val refreshed = runBlocking { tryRefresh() }
+        if (!refreshed) {
+            runBlocking { clearTokens() }
+            return@Authenticator null
+        }
+
+        response.request.newBuilder()
+            .header("Authorization", "Bearer $accessToken")
+            .header("X-Retry-After-Refresh", "true")
+            .build()
+    }
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
@@ -82,33 +101,12 @@ object AuthRetrofitClient {
     private val httpClient = OkHttpClient.Builder()
         .addInterceptor(loggingInterceptor)
         .addInterceptor { chain ->
-            val originalRequest = chain.request()
-            val requestBuilder = originalRequest.newBuilder()
-
-            accessToken?.let {
-                requestBuilder.addHeader("Authorization", "Bearer $it")
-            }
-
-            val response = chain.proceed(requestBuilder.build())
-
-            // If 401, try to refresh and retry once
-            if (response.code == 401 && refreshToken != null) {
-                response.close()
-                val refreshed = runBlocking { tryRefresh() }
-                if (refreshed) {
-                    val retryRequest = originalRequest.newBuilder()
-                        .addHeader("Authorization", "Bearer $accessToken")
-                        .build()
-                    chain.proceed(retryRequest)
-                } else {
-                    // Refresh failed — clear tokens
-                    runBlocking { clearTokens() }
-                    chain.proceed(originalRequest)
-                }
-            } else {
-                response
-            }
+            val request = chain.request().newBuilder().apply {
+                accessToken?.let { addHeader("Authorization", "Bearer $it") }
+            }.build()
+            chain.proceed(request)
         }
+        .authenticator(tokenAuthenticator)
         .build()
 
     val api: AuthApiService by lazy {

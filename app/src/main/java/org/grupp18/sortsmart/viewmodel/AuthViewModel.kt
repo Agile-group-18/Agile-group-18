@@ -1,5 +1,6 @@
 package org.grupp18.sortsmart.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,12 +22,22 @@ class AuthViewModel : ViewModel() {
     private val _isRestoringSession = MutableStateFlow(true)  // true until DB check completes
     val isRestoringSession: StateFlow<Boolean> = _isRestoringSession
 
+    init {
+        tryRestoreSession()
+    }
+
     fun tryRestoreSession() {
         viewModelScope.launch {
             _isRestoringSession.value = true
-            val restored = repository.loadSavedSession()
-            if (restored) _isLoggedIn.value = true
-            _isRestoringSession.value = false
+            try {
+                val restored = repository.loadSavedSession()
+                if (restored) _isLoggedIn.value = true
+            } catch (e: Exception) {
+                // not logged in, release loading
+                Log.e("AuthViewModel", "Session restore failed", e)
+            } finally {
+                _isRestoringSession.value = false
+            }
         }
     }
 
@@ -63,7 +74,7 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 repository.logout()
-            } catch (_: Exception) { /* best-effort */
+            } catch (_: Exception) {
             }
             repository.clearTokens()
             _isLoggedIn.value = false
@@ -89,6 +100,7 @@ class AuthViewModel : ViewModel() {
             else -> AuthState.Error("Reset failed: ${response.code()}")
         }
     }
+
     fun verifyEmail(token: String, onResult: (Int) -> Unit) {
         viewModelScope.launch {
             try {

@@ -58,12 +58,12 @@ import org.grupp18.sortsmart.ui.theme.SortSmartBg
 import org.grupp18.sortsmart.ui.theme.SortSmartGreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 import org.grupp18.sortsmart.viewmodel.AuthViewModel
+import org.grupp18.sortsmart.viewmodel.HomeViewModel
+import org.grupp18.sortsmart.viewmodel.ProfileViewModel
 
 class MainActivity : ComponentActivity() {
-    companion object {
-        var pendingResetToken: String? = null
-        var pendingVerifyToken: String? = null
-    }
+    private var _pendingResetToken = mutableStateOf<String?>(null)
+    private var _pendingVerifyToken = mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,45 +73,47 @@ class MainActivity : ComponentActivity() {
         handleDeepLink(intent)
         setContent {
             SortSmartTheme {
-                SortSmartApp(initialResetToken = pendingResetToken, initialVerifyToken = pendingVerifyToken)
+                SortSmartApp(
+                    initialResetToken = _pendingResetToken.value,
+                    initialVerifyToken = _pendingVerifyToken.value
+                )
             }
         }
     }
 
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        recreate()
+        handleDeepLink(intent)
     }
-    private fun handleDeepLink(intent: android.content.Intent?) {
-        val data = intent?.data
-        val path = data?.path
-        val token = data?.getQueryParameter("token")
 
-        if (path == "/verify-email") {
-            pendingVerifyToken = token
-            pendingResetToken = null
-        } else if (path == "/reset-password") {
-            pendingResetToken = token
-            pendingVerifyToken = null
+    private fun handleDeepLink(intent: android.content.Intent?) {
+        val data = intent?.data ?: return
+        val token = data.getQueryParameter("token")
+        when (data.path) {
+            "/verify-email" -> {
+                _pendingVerifyToken.value = token; _pendingResetToken.value = null
+            }
+
+            "/reset-password" -> {
+                _pendingResetToken.value = token; _pendingVerifyToken.value = null
+            }
         }
     }
 }
 
 @Composable
-fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? = null) {
+fun SortSmartApp(initialResetToken: String? = null, initialVerifyToken: String? = null) {
     val navController = rememberNavController()
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination: NavDestination? = currentBackStackEntry?.destination
 
     val authViewModel: AuthViewModel = viewModel()
+    val profileViewModel: ProfileViewModel = viewModel()
     val isLoggedIn by authViewModel.isLoggedIn.collectAsStateWithLifecycle()
     val isRestoringSession by authViewModel.isRestoringSession.collectAsStateWithLifecycle()
 
-    // Restore session once at app start — not inside ProfileScreen
-    LaunchedEffect(Unit) {
-        authViewModel.tryRestoreSession()
-    }
     // Block all UI until the DB session check completes — prevents logged-out flash
     if (isRestoringSession) {
         Box(
@@ -241,7 +243,14 @@ fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? =
                         )
                     }
                 ) {
-                    composable<Home> { HomeScreen(isLoggedIn = isLoggedIn) }
+                    composable<Home> {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        HomeScreen(
+                            isLoggedIn = isLoggedIn,
+                            homeViewModel = viewModel(factory = HomeViewModel.Factory(context)),
+                            profileViewModel = profileViewModel,
+                        )
+                    }
                     composable<Map> { MapScreen() }
                     composable<Basket> {
                         val context = androidx.compose.ui.platform.LocalContext.current
@@ -282,6 +291,7 @@ fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? =
                     composable<Profile> {
                         ProfileScreen(
                             authViewModel = authViewModel,
+                            profileViewModel = profileViewModel,
                             resetToken = initialResetToken,
                             verifyToken = initialVerifyToken,
                             triggerLogin = triggerLoginFromHeader,
