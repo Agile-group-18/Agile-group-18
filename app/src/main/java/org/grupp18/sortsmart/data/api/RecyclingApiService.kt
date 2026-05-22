@@ -1,6 +1,7 @@
 package org.grupp18.sortsmart.data.api
 
 import org.grupp18.sortsmart.data.api.dto.CategoryDto
+import org.grupp18.sortsmart.data.api.dto.NearbyResponseDto
 import org.grupp18.sortsmart.data.api.dto.ReportRequestDto
 import org.grupp18.sortsmart.data.api.dto.ReportResponseDto
 import org.grupp18.sortsmart.data.api.dto.StationDetailDto
@@ -38,4 +39,15 @@ interface RecyclingApiService {
         @Path("station_id") stationId: String,
         @Body request: ReportRequestDto
     ): ReportResponseDto
+
+    @GET("stations")
+    suspend fun getNearbyStations(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("radius_km") radiusKm: Double = 10.0,
+        @Query("view") view: String = "list"
+    ): NearbyResponseDto
+
+    @GET("tips")
+    suspend fun getSortingTips(): List<String>
 }
