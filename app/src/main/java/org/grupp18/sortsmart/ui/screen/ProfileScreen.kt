@@ -132,18 +132,18 @@ fun ProfileScreen(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = null,
                         tint = InactiveColor.copy(alpha = 0.4f),
-                        modifier = Modifier.size(96.dp)
+                        modifier = Modifier.size(115.dp)
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
                         text = "You're not logged in",
-                        fontSize = 18.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Medium,
                         color = InactiveColor
                     )
                     Text(
                         text = "Log in to view and manage your profile",
-                        fontSize = 13.sp,
+                        fontSize = 16.sp,
                         color = InactiveColor.copy(alpha = 0.7f)
                     )
                 }
