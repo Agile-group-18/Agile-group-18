@@ -44,7 +44,11 @@ class ProfileViewModel : ViewModel() {
                         _profileState.value = ProfileState.Loaded(it)
                     }
                 } else {
-                    _profileState.value = ProfileState.Error("Update failed: ${response.code()}")
+                    _profileState.value = ProfileState.Error(
+                        response.message().takeIf { it.isNotBlank() }
+                            ?: response.errorBody()?.string()
+                            ?: "HTTP ${response.code()}"
+                    )
                 }
             } catch (e: Exception) {
                 _profileState.value = ProfileState.Error("Network error: ${e.localizedMessage}")

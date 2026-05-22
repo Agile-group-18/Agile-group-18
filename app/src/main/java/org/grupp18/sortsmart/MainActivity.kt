@@ -58,6 +58,7 @@ import org.grupp18.sortsmart.ui.theme.SortSmartBg
 import org.grupp18.sortsmart.ui.theme.SortSmartGreen
 import org.grupp18.sortsmart.ui.theme.SortSmartTheme
 import org.grupp18.sortsmart.viewmodel.AuthViewModel
+import org.grupp18.sortsmart.viewmodel.HomeViewModel
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -241,7 +242,13 @@ fun SortSmartApp(initialResetToken: String? = null,initialVerifyToken: String? =
                         )
                     }
                 ) {
-                    composable<Home> { HomeScreen(isLoggedIn = isLoggedIn) }
+                    composable<Home> {
+                        val context = androidx.compose.ui.platform.LocalContext.current
+                        HomeScreen(
+                            isLoggedIn = isLoggedIn,
+                            homeViewModel = viewModel(factory = HomeViewModel.Factory(context))
+                        )
+                    }
                     composable<Map> { MapScreen() }
                     composable<Basket> {
                         val context = androidx.compose.ui.platform.LocalContext.current

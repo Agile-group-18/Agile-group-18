@@ -5,8 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import com.google.android.gms.maps.model.LatLng
+import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 
 object MapNavigationUtil {
 
