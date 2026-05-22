@@ -12,6 +12,21 @@ import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import org.grupp18.sortsmart.data.model.WasteCategory
 import org.grupp18.sortsmart.data.repository.StationRepository
+import android.content.Context
+import android.widget.Toast
+import com.google.android.gms.maps.model.LatLng
+import kotlinx.coroutines.withContext
+import org.grupp18.sortsmart.data.model.ItemDetail
+import org.grupp18.sortsmart.RouteOptimizer
+import org.grupp18.sortsmart.util.MapNavigationUtil
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 class MapViewModel(
     private val repository: StationRepository
@@ -213,6 +228,96 @@ class MapViewModel(
             } else {
                 _errorMessage.value = "Could not submit all reports."
             }
+        }
+    }
+
+    private val _isCalculatingRoute = MutableStateFlow(false)
+    val isCalculatingRoute: StateFlow<Boolean> = _isCalculatingRoute.asStateFlow()
+
+    private val routeOptimizer = RouteOptimizer()
+
+    fun calculateAndShowRoute(
+        context: Context,
+        basketItems: List<ItemDetail>,
+        strategy: RouteOptimizer.OptimizationStrategy
+    ) {
+        viewModelScope.launch {
+            _isCalculatingRoute.value = true
+
+            if (basketItems.isEmpty()) {
+                _errorMessage.value = "Your basket is empty. Add some items first!"
+                _isCalculatingRoute.value = false
+                return@launch
+            }
+
+            val startLocation = try {
+                val hasLocationPermission = ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (hasLocationPermission) {
+                    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+                    val location = suspendCancellableCoroutine { continuation ->
+                        fusedLocationClient.getCurrentLocation(
+                            Priority.PRIORITY_HIGH_ACCURACY,
+                            CancellationTokenSource().token
+                        ).addOnSuccessListener { loc ->
+                            continuation.resume(loc)
+                        }.addOnFailureListener {
+                            continuation.resume(null)
+                        }
+                    }
+
+                    if (location != null) {
+                        LatLng(location.latitude, location.longitude)
+                    } else {
+                        LatLng(57.708870, 11.974560) // Gothenburg Central fallback
+                    }
+                } else {
+                    LatLng(57.708870, 11.974560) // Gothenburg Central fallback
+                }
+            } catch (e: SecurityException) {
+                LatLng(57.708870, 11.974560) // Gothenburg Central fallback
+            }
+
+            val basketCategories = basketItems.mapNotNull { item ->
+                item.category?.let { cat ->
+                    WasteCategory(
+                        id = cat.id ?: 0,
+                        name = cat.name,
+                        imageUrl = cat.imageUrl
+                    )
+                }
+            }
+
+            val availableStations = repository.getStationsForRouting()
+
+            val route = try {
+                routeOptimizer.calculateOptimalRoute(
+                    currentLocation = startLocation,
+                    basketCategories = basketCategories,
+                    availableStations = availableStations,
+                    strategy = strategy
+                )
+            } catch (e: RouteOptimizer.RouteNotFoundException) {
+                emptyList()
+            }
+
+            if (route.isEmpty()) {
+                _errorMessage.value = "No nearby stations accept the specific items in your basket."
+                _isCalculatingRoute.value = false
+                return@launch
+            }
+
+            MapNavigationUtil.launchGoogleMapsRoute(
+                context = context,
+                route = route,
+                origin = startLocation
+            )
+
+            _isCalculatingRoute.value = false
         }
     }
 }

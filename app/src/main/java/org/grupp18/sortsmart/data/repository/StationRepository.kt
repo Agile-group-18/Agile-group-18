@@ -13,6 +13,7 @@ import org.grupp18.sortsmart.data.mapper.toStationCategoryEntities
 import org.grupp18.sortsmart.data.model.RecyclingStationDetail
 import org.grupp18.sortsmart.data.model.RecyclingStationMarker
 import org.grupp18.sortsmart.data.model.WasteCategory
+import org.grupp18.sortsmart.RouteOptimizer
 
 class StationRepository(context: Context) {
 
@@ -27,12 +28,15 @@ class StationRepository(context: Context) {
         problemOnly: Boolean = false
     ): List<RecyclingStationMarker> {
         val categoryIds = selectedCategoryIds.toList()
+
         val entities = when {
             categoryIds.isEmpty() && problemOnly -> stationDao.getProblemMarkers()
             categoryIds.isEmpty() -> stationDao.getAllMarkers()
-            problemOnly -> stationDao.getProblemMarkersMatchingAnyCategory(categoryIds)
-            else -> stationDao.getMarkersMatchingAnyCategory(categoryIds)
+
+            problemOnly -> stationDao.getProblemMarkersMatchingAllCategories(categoryIds, categoryIds.size)
+            else -> stationDao.getMarkersMatchingAllCategories(categoryIds, categoryIds.size)
         }
+
         return entities.map { it.toModel() }
     }
 
@@ -86,5 +90,16 @@ class StationRepository(context: Context) {
             stationId = stationId,
             request = ReportRequestDto(categoryId, status, note)
         )
+    }
+
+    suspend fun getStationsForRouting(): List<RouteOptimizer.StationNode> {
+        val markersWithCategories = stationDao.getAllMarkersWithCategories()
+
+        return markersWithCategories.map { relation ->
+            RouteOptimizer.StationNode(
+                marker = relation.marker.toModel(),
+                supportedCategoryIds = relation.categories.map { it.categoryId }.toSet()
+            )
+        }
     }
 }
